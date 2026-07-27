@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@keyframes budget-over-blink {
+  0%,
+  100% {
+    border-color: #7f1d1d;
+    box-shadow: 0 0 0 0 rgba(127, 29, 29, 0.15);
+  }
+
+  50% {
+    border-color: #ef4444;
+    box-shadow: 0 0 14px 1px rgba(239, 68, 68, 0.45);
+  }
+}
+
+.budget-card-over {
+  border-width: 1.5px;
+  border-style: solid;
+  animation: budget-over-blink 1.4s ease-in-out infinite;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast-enter {
+  animation: toast-in 0.2s ease-out;
+}

@@ -1,0 +1,48 @@
+---
+description: PocketPilot frontend architecture, design system, and AI boundaries
+alwaysApply: true
+---
+
+# PocketPilot Frontend
+
+Mobile-first PWA for personal budget management. Single user, no auth, one active salary cycle.
+
+Stack: React + Vite + Tailwind + Zustand. Backend: Node/Express/PostgreSQL (do not modify contracts).
+
+## Hard Rules
+
+- Navigation: React Router (`react-router-dom`) — routes in `App.jsx`, `BrowserRouter` in `main.jsx`
+- Bottom nav routes: `/` (Home), `/income`, `/expenses` (Spend), `/transfers` (Rebalance), `/categories` (Budgets)
+- Only Cycle Setup is gated (no active cycle). Other modules are normal nav pages
+- `BottomNav` lives in `AppLayout` via `<Outlet />` — pages must never render it
+- Always wrap pages in `ScreenLayout`; use `PageHeader`, `PrimaryButton`, `TextInput`
+- Prefer existing components (`BalanceCard`, `BudgetCard`, `FloatingActionButton`) over new ones
+- Avoid inline styles; use Tailwind
+- Expect API envelope: `{ success, message, data }`
+- Consume APIs exactly as documented in `docs/API_INTEGRATION.md` — do not invent or change contracts
+
+## Theme (dark purple)
+
+`#10002b` `#240046` `#3c096c` `#5a189a` `#7b2cbf` `#9d4edd` `#c77dff` `#e0aaff`
+
+Rounded cards/buttons, minimal, dashboard-focused.
+
+## Startup Flow
+
+No active cycle → Cycle Setup (full screen).
+
+Active cycle → Dashboard with BottomNav. Categories/Income are optional pages via nav.
+
+## Stores
+
+Exist: `cycleStore`, `categoryStore`, `incomeStore`, `expenseStore`, `categoryTransferStore`.
+
+## Scope Split
+
+Frontend owns: UI, Zustand, API clients, forms, validation, responsive design.
+
+Backend owns: schema, SQL, routes, controllers, services, response shapes.
+
+## Not Started
+
+Reports, Settings, Analytics, Budget Alerts, Recurring Expenses.
