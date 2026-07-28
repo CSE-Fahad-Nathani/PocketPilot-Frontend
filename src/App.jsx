@@ -9,17 +9,22 @@ import Expenses from "./pages/Expenses";
 import Dashboard from "./pages/Dashboard";
 import Analysis from "./pages/Analysis";
 import TransactionHistory from "./pages/TransactionHistory";
+import Login from "./pages/Login";
 
 import AppLayout from "./components/AppLayout";
+import AppLoader from "./components/AppLoader";
 import ToastContainer from "./components/ToastContainer";
 
+import useAuthStore from "./store/authStore";
 import useCycleStore from "./store/cycleStore";
 import useCategoryStore from "./store/categoryStore";
 import useIncomeStore from "./store/incomeStore";
 import useExpenseStore from "./store/expenseStore";
 import useCategoryTransferStore from "./store/categoryTransferStore";
+import { wakeServer } from "./utils/wakeServer";
 
 const App = () => {
+  const session = useAuthStore((state) => state.session);
   const { activeCycle, getActiveCycle } = useCycleStore();
   const { getCategories } = useCategoryStore();
   const { getIncome } = useIncomeStore();
@@ -29,9 +34,23 @@ const App = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!session?.authenticated) {
+      setLoading(true);
+      return undefined;
+    }
+
+    let cancelled = false;
+
     const init = async () => {
+      setLoading(true);
+
+      // Continue waking / wait for Render if login didn't finish the ping.
+      await wakeServer();
+
       try {
         const cycleResponse = await getActiveCycle();
+
+        if (cancelled) return;
 
         if (cycleResponse.success && cycleResponse.data) {
           const cycleId = cycleResponse.data.id;
@@ -43,20 +62,27 @@ const App = () => {
           ]);
         }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     init();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.authenticated]);
 
   let content;
 
-  if (loading) {
+  if (!session?.authenticated) {
+    content = <Login />;
+  } else if (loading) {
     content = (
-      <div className="flex min-h-screen items-center justify-center bg-[#10002b] text-white">
-        Loading...
-      </div>
+      <AppLoader
+        title="PocketPilot"
+        subtitle="Loading your workspace"
+      />
     );
   } else if (!activeCycle) {
     content = (

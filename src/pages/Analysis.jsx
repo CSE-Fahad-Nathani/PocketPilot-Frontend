@@ -1,4 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import ScreenLayout from "../components/ScreenLayout";
 import PageHeader from "../components/PageHeader";
@@ -67,6 +80,62 @@ const LedgerCard = ({ children }) => (
   </div>
 );
 
+const ChartCard = ({ title, subtitle, children }) => (
+  <div className="rounded-2xl border border-[#e0aaff1f] bg-[#240046] p-3">
+    <div className="mb-3">
+      <p className="text-sm font-semibold text-white">{title}</p>
+      {subtitle ? (
+        <p className="mt-0.5 text-[11px] text-[#9d4edd]">{subtitle}</p>
+      ) : null}
+    </div>
+    {children}
+  </div>
+);
+
+const chartPalette = [
+  "#06b6d4",
+  "#3b82f6",
+  "#14b8a6",
+  "#22c55e",
+  "#4ade80",
+  "#f59e0b",
+  "#f87171",
+  "#eab308",
+];
+
+const formatCompactAmount = (value) => {
+  const amount = Number(value);
+  if (Number.isNaN(amount)) return "₹0";
+
+  return `₹${new Intl.NumberFormat("en-IN", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(amount)}`;
+};
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+
+  return (
+    <div className="rounded-xl border border-slate-700/60 bg-slate-950/95 px-3 py-2 shadow-lg">
+      {label ? <p className="text-xs font-medium text-white">{label}</p> : null}
+      <div className="mt-1 space-y-1">
+        {payload.map((item) => (
+          <div
+            key={item.dataKey}
+            className="flex items-center justify-between gap-3 text-[11px]"
+          >
+            <span style={{ color: item.color }} className="font-medium">
+              {item.name}
+            </span>
+            <span className="text-white">{formatAmount(item.value)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const AnalysisTabs = ({ active, onChange }) => (
   <div className="mb-4 grid grid-cols-2 gap-1 rounded-xl border border-[#e0aaff1f] bg-[#240046] p-1">
     {TABS.map((tab) => {
@@ -89,6 +158,169 @@ const AnalysisTabs = ({ active, onChange }) => (
     })}
   </div>
 );
+
+const FinancialOverviewChart = ({ analysis }) => {
+  const data = [
+    {
+      name: "Planned",
+      amount: Number(analysis.planned_budget || 0),
+      fill: "#06b6d4",
+    },
+    {
+      name: "Income",
+      amount: Number(analysis.total_income || 0),
+      fill: "#22c55e",
+    },
+    {
+      name: "Expense",
+      amount: Number(analysis.total_expense || 0),
+      fill: "#f97316",
+    },
+    {
+      name: "Saved",
+      amount: Number(analysis.total_saved || 0),
+      fill: "#eab308",
+    },
+  ];
+
+  return (
+    <ChartCard
+      title="Financial Overview"
+      subtitle="High-level comparison for this completed cycle"
+    >
+      <div className="h-56">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#3c096c" vertical={false} />
+            <XAxis dataKey="name" tick={{ fill: "#c77dff", fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis
+              tick={{ fill: "#9d4edd", fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={formatCompactAmount}
+            />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(148, 163, 184, 0.08)" }} />
+            <Bar dataKey="amount" radius={[10, 10, 0, 0]}>
+              {data.map((entry) => (
+                <Cell key={entry.name} fill={entry.fill} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </ChartCard>
+  );
+};
+
+const CategoryComparisonChart = ({ categories }) => {
+  const data = categories
+    .map((category) => ({
+      name: category.name,
+      planned: Number(category.planned_budget || 0),
+      spent: Number(category.spent_amount || 0),
+    }))
+    .sort((a, b) => b.spent - a.spent)
+    .slice(0, 6);
+
+  if (!data.length) return null;
+
+  return (
+    <ChartCard
+      title="Category Spend vs Budget"
+      subtitle="Top spending categories in this cycle"
+    >
+      <div className="h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} barGap={8}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#3c096c" vertical={false} />
+            <XAxis
+              dataKey="name"
+              tick={{ fill: "#c77dff", fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+              interval={0}
+            />
+            <YAxis
+              tick={{ fill: "#9d4edd", fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={formatCompactAmount}
+            />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(148, 163, 184, 0.08)" }} />
+            <Legend wrapperStyle={{ fontSize: "11px" }} />
+            <Bar dataKey="planned" name="Planned" fill="#0ea5e9" radius={[8, 8, 0, 0]} />
+            <Bar dataKey="spent" name="Spent" fill="#f97316" radius={[8, 8, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </ChartCard>
+  );
+};
+
+const ExpenseSplitChart = ({ categories }) => {
+  const data = categories
+    .map((category) => ({
+      name: category.name,
+      value: Number(category.spent_amount || 0),
+    }))
+    .filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+
+  if (!data.length) return null;
+
+  return (
+    <ChartCard
+      title="Expense Split"
+      subtitle="Where most spending happened"
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.1fr_0.9fr] sm:items-center">
+        <div className="h-56">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={52}
+                outerRadius={78}
+                paddingAngle={3}
+              >
+                {data.map((entry, index) => (
+                  <Cell
+                    key={entry.name}
+                    fill={chartPalette[index % chartPalette.length]}
+                  />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="space-y-2">
+          {data.map((item, index) => (
+            <div
+              key={item.name}
+              className="flex items-center justify-between gap-3 rounded-xl border border-[#3c096c] bg-[#3c096c]/25 px-3 py-2"
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: chartPalette[index % chartPalette.length] }}
+                />
+                <span className="truncate text-xs text-white">{item.name}</span>
+              </div>
+              <span className="shrink-0 text-[11px] font-medium text-[#c77dff]">
+                {formatAmount(item.value)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </ChartCard>
+  );
+};
 
 const Analysis = () => {
   const {
@@ -124,6 +356,11 @@ const Analysis = () => {
   const cycleCategories = analysis?.categories || [];
   const cycleExpenses = analysis?.expenses || [];
   const cycleSavings = analysis?.savings || [];
+  const totalSpentCategories = useMemo(
+    () =>
+      cycleCategories.filter((item) => Number(item.spent_amount || 0) > 0).length,
+    [cycleCategories]
+  );
 
   const handleSelectCycle = async (cycleId) => {
     if (cycleId === selectedCycleId) return;
@@ -179,7 +416,7 @@ const Analysis = () => {
                 No completed cycles yet. End a cycle to see analysis here.
               </EmptyBlock>
             ) : (
-              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 theme-scrollbar-x">
                 {history.map((cycle) => {
                   const isActive = cycle.id === selectedCycleId;
 
@@ -252,6 +489,15 @@ const Analysis = () => {
                 </div>
               </section>
 
+              <section className="mb-4 space-y-4">
+                <SectionTitle title="Visual Insights" />
+                <FinancialOverviewChart analysis={analysis} />
+                <CategoryComparisonChart categories={cycleCategories} />
+                {totalSpentCategories > 0 ? (
+                  <ExpenseSplitChart categories={cycleCategories} />
+                ) : null}
+              </section>
+
               <section className="mb-4">
                 <SectionTitle
                   title="Budgets"
@@ -261,58 +507,72 @@ const Analysis = () => {
                 {cycleCategories.length === 0 ? (
                   <EmptyBlock>No categories in this cycle.</EmptyBlock>
                 ) : (
-                  <LedgerCard>
-                    {cycleCategories.map((category) => (
-                      <div key={category.id} className="px-3 py-2.5">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-white">
-                              {category.name}
-                            </p>
-                            <p className="mt-0.5 text-[10px] capitalize text-[#9d4edd]">
-                              {category.type}
-                            </p>
-                          </div>
-                          <p className="shrink-0 text-xs font-semibold text-white">
-                            {formatAmount(category.planned_budget)}
-                          </p>
-                        </div>
+                  <div className="space-y-2">
+                    {cycleCategories.map((category) => {
+                      const planned = Number(category.planned_budget || 0);
+                      const spent = Number(category.spent_amount || 0);
+                      const remaining = Number(category.remaining_amount || 0);
+                      const usagePercent =
+                        planned > 0 ? Math.min((spent / planned) * 100, 100) : 0;
+                      const overBudget = remaining < 0;
 
-                        <div className="mt-1.5 grid grid-cols-3 gap-1 text-center">
-                          <div>
-                            <p className="text-[9px] uppercase tracking-wide text-[#c77dff]">
-                              Planned
-                            </p>
-                            <p className="mt-0.5 text-[11px] font-medium text-white">
-                              {formatAmount(category.planned_budget)}
-                            </p>
+                      return (
+                        <div
+                          key={category.id}
+                          className="rounded-xl border border-[#e0aaff1f] bg-[#240046] px-2.5 py-2"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <p className="truncate text-sm font-semibold text-white">
+                                  {category.name}
+                                </p>
+                                <span className="rounded-full border border-[#3c096c] bg-[#3c096c]/35 px-1.5 py-0.5 text-[7px] uppercase tracking-[0.14em] text-[#c77dff]">
+                                  {category.type}
+                                </span>
+                              </div>
+                              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px]">
+                                <span className="text-[#9d4edd]">
+                                  Planned <span className="text-white">{formatAmount(planned)}</span>
+                                </span>
+                                <span className="text-[#9d4edd]">
+                                  Spent <span className="text-[#facc15]">{formatAmount(spent)}</span>
+                                </span>
+                                <span
+                                  className={overBudget ? "text-[#f87171]" : "text-[#4ade80]"}
+                                >
+                                  Left {formatAmount(remaining)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="shrink-0 text-right">
+                              <p
+                                className={`text-[10px] font-medium ${
+                                  overBudget ? "text-[#f87171]" : "text-[#9d4edd]"
+                                }`}
+                              >
+                                {overBudget
+                                  ? "Exceeded"
+                                  : `${Math.round(usagePercent)}% used`}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-[9px] uppercase tracking-wide text-[#c77dff]">
-                              Spent
-                            </p>
-                            <p className="mt-0.5 text-[11px] font-medium text-[#facc15]">
-                              {formatAmount(category.spent_amount)}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-[9px] uppercase tracking-wide text-[#c77dff]">
-                              Left
-                            </p>
-                            <p
-                              className={`mt-0.5 text-[11px] font-medium ${
-                                Number(category.remaining_amount) < 0
-                                  ? "text-[#f87171]"
-                                  : "text-[#4ade80]"
-                              }`}
-                            >
-                              {formatAmount(category.remaining_amount)}
-                            </p>
+
+                          <div className="mt-1.5">
+                            <div className="h-1 overflow-hidden rounded-full bg-[#3c096c]/55">
+                              <div
+                                className={`h-full rounded-full ${
+                                  overBudget ? "bg-[#f87171]" : "bg-[#22c55e]"
+                                }`}
+                                style={{ width: `${Math.max(8, usagePercent)}%` }}
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </LedgerCard>
+                      );
+                    })}
+                  </div>
                 )}
               </section>
 
