@@ -1,6 +1,8 @@
+import { FiBarChart2 } from "react-icons/fi";
+
 import { getBudgetStatus } from "../utils/budgetStatus";
 
-const BudgetCard = ({ category, spent = 0 }) => {
+const BudgetCard = ({ category, spent = 0, onExpand }) => {
   const budget = Number(category.budget) || 0;
   const spentAmount = Number(spent) || 0;
   const remaining = budget - spentAmount;
@@ -24,6 +26,18 @@ const BudgetCard = ({ category, spent = 0 }) => {
         <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-white">
           {category.name}
         </h3>
+
+        {onExpand ? (
+          <button
+            type="button"
+            onClick={onExpand}
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#3c096c] bg-[#3c096c]/35 text-[#22d3ee] transition hover:border-[#22d3ee]/40 hover:bg-[#3c096c]/60"
+            aria-label={`View ${category.name} fuel analysis`}
+            title="Fuel analysis"
+          >
+            <FiBarChart2 size={14} />
+          </button>
+        ) : null}
 
         <span
           className="shrink-0 text-xs font-semibold"

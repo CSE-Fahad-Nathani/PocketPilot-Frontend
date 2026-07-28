@@ -10,9 +10,10 @@ import FloatingActionButton from "../components/FloatingActionButton";
 import BudgetCard from "../components/BudgetCard";
 import FixedPaymentCard from "../components/FixedPaymentCard";
 import BalanceCard from "../components/BalanceCard";
+import FuelAnalysisModal from "../components/FuelAnalysisModal";
 import ScreenLayout from "../components/ScreenLayout";
 import EndCycleModal from "../components/EndCycleModal";
-import { isSimpleExpense } from "../utils/expenseExtraData";
+import { isSimpleExpense, resolveExtraDataType } from "../utils/expenseExtraData";
 import { showToast } from "../store/toastStore";
 
 const Dashboard = () => {
@@ -25,6 +26,8 @@ const Dashboard = () => {
   const [endSummary, setEndSummary] = useState(null);
   const [verifyingEnd, setVerifyingEnd] = useState(false);
   const [confirmingEnd, setConfirmingEnd] = useState(false);
+  const [fuelModalOpen, setFuelModalOpen] = useState(false);
+  const [fuelCategoryName, setFuelCategoryName] = useState("");
 
   const totalIncome = income.reduce(
     (sum, item) => sum + Number(item.amount),
@@ -182,6 +185,14 @@ const Dashboard = () => {
               key={category.id}
               category={category}
               spent={spentByCategory[category.id] || 0}
+              onExpand={
+                resolveExtraDataType(category) === "fuel"
+                  ? () => {
+                      setFuelCategoryName(category.name);
+                      setFuelModalOpen(true);
+                    }
+                  : undefined
+              }
             />
           ))
         )}
@@ -235,6 +246,12 @@ const Dashboard = () => {
         onCancel={handleCancelEnd}
         onConfirm={handleConfirmEnd}
         onSummaryChange={setEndSummary}
+      />
+
+      <FuelAnalysisModal
+        open={fuelModalOpen}
+        categoryName={fuelCategoryName}
+        onClose={() => setFuelModalOpen(false)}
       />
     </ScreenLayout>
   );
