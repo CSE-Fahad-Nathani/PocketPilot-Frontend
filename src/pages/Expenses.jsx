@@ -67,6 +67,7 @@ const Expenses = () => {
   const [form, setForm] = useState(() => emptyForm());
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState("all");
 
   useEffect(() => {
     if (!activeCycle?.id) return;
@@ -136,10 +137,30 @@ const Expenses = () => {
     return expenses.reduce((sum, item) => sum + Number(item.amount), 0);
   }, [expenses]);
 
+  const filteredExpenses = useMemo(() => {
+    if (historyFilter === "all") return expenses;
+
+    return expenses.filter(
+      (expense) => String(expense.category_id) === historyFilter
+    );
+  }, [expenses, historyFilter]);
+
+  const filteredTotal = useMemo(() => {
+    return filteredExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
+  }, [filteredExpenses]);
+
+  const historyFilterLabel = useMemo(() => {
+    if (historyFilter === "all") return "All";
+    return (
+      categories.find((category) => String(category.id) === historyFilter)
+        ?.name || "Category"
+    );
+  }, [categories, historyFilter]);
+
   const groupedHistory = useMemo(() => {
     const groups = new Map();
 
-    expenses.forEach((expense) => {
+    filteredExpenses.forEach((expense) => {
       const key = toDateInput(expense.expense_date);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(expense);
@@ -150,7 +171,7 @@ const Expenses = () => {
       items,
       dayTotal: items.reduce((sum, item) => sum + Number(item.amount), 0),
     }));
-  }, [expenses]);
+  }, [filteredExpenses]);
 
   const resetForm = () => {
     const category = categories[0];
@@ -522,15 +543,60 @@ const Expenses = () => {
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-[#e0aaff]">History</h3>
           <span className="text-[11px] text-[#9d4edd]">
-            {expenses.length} items
+            {filteredExpenses.length} items
+            {historyFilter !== "all" ? ` · ₹${filteredTotal.toLocaleString()}` : ""}
           </span>
         </div>
+
+        {categories.length > 0 ? (
+          <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1 theme-scrollbar-x">
+            <button
+              type="button"
+              onClick={() => setHistoryFilter("all")}
+              className={`shrink-0 rounded-full mb-2 border px-3 py-1.5 text-[11px] font-medium transition ${
+                historyFilter === "all"
+                  ? "border-[#9d4edd] bg-[#5a189a]/50 text-white"
+                  : "border-[#3c096c] bg-[#3c096c]/30 text-[#c77dff] hover:bg-[#3c096c]/50"
+              }`}
+            >
+              All
+            </button>
+            {categories.map((category) => {
+              const active = historyFilter === String(category.id);
+
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => setHistoryFilter(String(category.id))}
+                  className={`shrink-0 mb-2 rounded-full border px-3 py-1.5 text-[11px] font-medium transition ${
+                    active
+                      ? "border-[#9d4edd] bg-[#5a189a]/50 text-white"
+                      : "border-[#3c096c] bg-[#3c096c]/30 text-[#c77dff] hover:bg-[#3c096c]/50"
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <span
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ background: category.color || "#7b2cbf" }}
+                    />
+                    {category.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
 
         {loading && expenses.length === 0 ? (
           <p className="py-4 text-center text-xs text-[#c77dff]">Loading...</p>
         ) : expenses.length === 0 ? (
           <p className="rounded-2xl border border-[#e0aaff1f] bg-[#240046] py-4 text-center text-xs text-[#c77dff]">
             No expenses yet.
+          </p>
+        ) : filteredExpenses.length === 0 ? (
+          <p className="rounded-2xl border border-[#e0aaff1f] bg-[#240046] py-4 text-center text-xs text-[#c77dff]">
+            No expenses for {historyFilterLabel}.
           </p>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-[#e0aaff1f] bg-[#240046]">
