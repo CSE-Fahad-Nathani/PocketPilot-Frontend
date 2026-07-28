@@ -5,8 +5,11 @@ import {
   CartesianGrid,
   Cell,
   Legend,
+  Line,
+  LineChart,
   Pie,
   PieChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -22,6 +25,8 @@ import { DeleteAction, EditAction } from "../components/RowActions";
 import useAnalysisStore from "../store/analysisStore";
 import useSavingStore from "../store/savingStore";
 import { showToast } from "../store/toastStore";
+import { getBudgetStatus } from "../utils/budgetStatus";
+import { isSimpleExpense } from "../utils/expenseExtraData";
 
 const TABS = [
   { id: "cycles", label: "Cycles" },
@@ -44,6 +49,23 @@ const formatDate = (value) => {
     month: "short",
     year: "numeric",
   });
+};
+
+const formatShortDate = (value) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+
+  return date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+  });
+};
+
+const formatNumber = (value, digits = 1) => {
+  const num = Number(value);
+  if (Number.isNaN(num)) return "0";
+  return num.toLocaleString("en-IN", { maximumFractionDigits: digits });
 };
 
 const SummaryRow = ({ label, value, emphasize = false }) => (
@@ -136,6 +158,37 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
+const FuelMileageTooltip = ({ active, payload }) => {
+  if (!active || !payload?.length) return null;
+
+  const item = payload[0]?.payload;
+  if (!item) return null;
+
+  return (
+    <div className="rounded-xl border border-slate-700/60 bg-slate-950/95 px-3 py-2 shadow-lg">
+      <p className="text-xs font-medium text-white">{item.dateLabel}</p>
+      <div className="mt-1 space-y-1 text-[11px]">
+        <div className="flex justify-between gap-4">
+          <span className="text-[#22d3ee]">Mileage</span>
+          <span className="text-white">{formatNumber(item.mileage)} km/L</span>
+        </div>
+        <div className="flex justify-between gap-4">
+          <span className="text-[#94a3b8]">Distance</span>
+          <span className="text-white">{formatNumber(item.distance)} km</span>
+        </div>
+        <div className="flex justify-between gap-4">
+          <span className="text-[#94a3b8]">Liters</span>
+          <span className="text-white">{formatNumber(item.liters, 2)} L</span>
+        </div>
+        <div className="flex justify-between gap-4">
+          <span className="text-[#94a3b8]">Cost</span>
+          <span className="text-white">{formatAmount(item.amount)}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AnalysisTabs = ({ active, onChange }) => (
   <div className="mb-4 grid grid-cols-2 gap-1 rounded-xl border border-[#e0aaff1f] bg-[#240046] p-1">
     {TABS.map((tab) => {
@@ -162,7 +215,7 @@ const AnalysisTabs = ({ active, onChange }) => (
 const FinancialOverviewChart = ({ analysis }) => {
   const data = [
     {
-      name: "Planned",
+      name: "Plan",
       amount: Number(analysis.planned_budget || 0),
       fill: "#06b6d4",
     },
@@ -172,7 +225,7 @@ const FinancialOverviewChart = ({ analysis }) => {
       fill: "#22c55e",
     },
     {
-      name: "Expense",
+      name: "Spend",
       amount: Number(analysis.total_expense || 0),
       fill: "#f97316",
     },
@@ -184,23 +237,27 @@ const FinancialOverviewChart = ({ analysis }) => {
   ];
 
   return (
-    <ChartCard
-      title="Financial Overview"
-      subtitle="High-level comparison for this completed cycle"
-    >
-      <div className="h-56">
+    <ChartCard title="Overview" subtitle="Cycle totals">
+      <div className="h-44">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data}>
+          <BarChart data={data} margin={{ top: 4, right: 0, left: -18, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#3c096c" vertical={false} />
-            <XAxis dataKey="name" tick={{ fill: "#c77dff", fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis
-              tick={{ fill: "#9d4edd", fontSize: 10 }}
+            <XAxis
+              dataKey="name"
+              tick={{ fill: "#c77dff", fontSize: 9 }}
               axisLine={false}
               tickLine={false}
+              interval={0}
+            />
+            <YAxis
+              tick={{ fill: "#9d4edd", fontSize: 9 }}
+              axisLine={false}
+              tickLine={false}
+              width={36}
               tickFormatter={formatCompactAmount}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(148, 163, 184, 0.08)" }} />
-            <Bar dataKey="amount" radius={[10, 10, 0, 0]}>
+            <Bar dataKey="amount" radius={[8, 8, 0, 0]}>
               {data.map((entry) => (
                 <Cell key={entry.name} fill={entry.fill} />
               ))}
@@ -214,42 +271,40 @@ const FinancialOverviewChart = ({ analysis }) => {
 
 const CategoryComparisonChart = ({ categories }) => {
   const data = categories
+    .filter((category) => !isSimpleExpense(category))
     .map((category) => ({
       name: category.name,
       planned: Number(category.planned_budget || 0),
       spent: Number(category.spent_amount || 0),
     }))
-    .sort((a, b) => b.spent - a.spent)
-    .slice(0, 6);
+    .sort((a, b) => b.spent - a.spent);
 
   if (!data.length) return null;
 
   return (
-    <ChartCard
-      title="Category Spend vs Budget"
-      subtitle="Top spending categories in this cycle"
-    >
-      <div className="h-64">
+    <ChartCard title="Spend vs Budget" subtitle="Variable budgets">
+      <div className="h-44">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} barGap={8}>
+          <BarChart data={data} barGap={4} margin={{ top: 4, right: 0, left: -18, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#3c096c" vertical={false} />
             <XAxis
               dataKey="name"
-              tick={{ fill: "#c77dff", fontSize: 10 }}
+              tick={{ fill: "#c77dff", fontSize: 8 }}
               axisLine={false}
               tickLine={false}
               interval={0}
             />
             <YAxis
-              tick={{ fill: "#9d4edd", fontSize: 10 }}
+              tick={{ fill: "#9d4edd", fontSize: 9 }}
               axisLine={false}
               tickLine={false}
+              width={36}
               tickFormatter={formatCompactAmount}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(148, 163, 184, 0.08)" }} />
-            <Legend wrapperStyle={{ fontSize: "11px" }} />
-            <Bar dataKey="planned" name="Planned" fill="#0ea5e9" radius={[8, 8, 0, 0]} />
-            <Bar dataKey="spent" name="Spent" fill="#f97316" radius={[8, 8, 0, 0]} />
+            <Legend wrapperStyle={{ fontSize: "10px", paddingTop: "4px" }} />
+            <Bar dataKey="planned" name="Planned" fill="#0ea5e9" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="spent" name="Spent" fill="#f97316" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -322,6 +377,115 @@ const ExpenseSplitChart = ({ categories }) => {
   );
 };
 
+const FuelMileageChart = ({ fuelAnalysis }) => {
+  const summary = fuelAnalysis?.summary;
+  const history = fuelAnalysis?.history || [];
+
+  const chartData = useMemo(
+    () =>
+      [...history]
+        .sort(
+          (a, b) =>
+            new Date(a.expense_date).getTime() - new Date(b.expense_date).getTime()
+        )
+        .map((item) => ({
+          ...item,
+          dateLabel: formatShortDate(item.expense_date),
+          mileage: Number(item.mileage || 0),
+          distance: Number(item.distance || 0),
+          liters: Number(item.liters || 0),
+          amount: Number(item.amount || 0),
+        })),
+    [history]
+  );
+
+  if (!chartData.length) return null;
+
+  const avgMileage = Number(summary?.average_mileage || 0);
+
+  const statItems = [
+    { label: "Avg", value: `${formatNumber(summary?.average_mileage)} km/L`, tone: "text-[#22d3ee]" },
+    { label: "Best", value: `${formatNumber(summary?.best_mileage)} km/L`, tone: "text-[#4ade80]" },
+    { label: "Worst", value: `${formatNumber(summary?.worst_mileage)} km/L`, tone: "text-[#f97316]" },
+    { label: "Distance", value: `${formatNumber(summary?.total_distance, 0)} km`, tone: "text-white" },
+  ];
+
+  return (
+    <ChartCard
+      title="Mileage Trend"
+      subtitle={`${chartData.length} fuel fills · ${formatAmount(summary?.total_fuel_expense)} spent`}
+    >
+      <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {statItems.map((stat) => (
+          <div
+            key={stat.label}
+            className="rounded-xl border border-[#3c096c] bg-[#3c096c]/20 px-2.5 py-2 text-center"
+          >
+            <p className="text-[9px] uppercase tracking-wide text-[#9d4edd]">
+              {stat.label}
+            </p>
+            <p className={`mt-0.5 text-[11px] font-semibold ${stat.tone}`}>
+              {stat.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="h-56">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#3c096c" vertical={false} />
+            <XAxis
+              dataKey="dateLabel"
+              tick={{ fill: "#c77dff", fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+              interval="preserveStartEnd"
+            />
+            <YAxis
+              tick={{ fill: "#9d4edd", fontSize: 10 }}
+              axisLine={false}
+              tickLine={false}
+              domain={["auto", "auto"]}
+              tickFormatter={(value) => `${value}`}
+              label={{
+                value: "km/L",
+                angle: -90,
+                position: "insideLeft",
+                fill: "#9d4edd",
+                fontSize: 10,
+              }}
+            />
+            <Tooltip content={<FuelMileageTooltip />} />
+            {avgMileage > 0 ? (
+              <ReferenceLine
+                y={avgMileage}
+                stroke="#eab308"
+                strokeDasharray="4 4"
+                label={{
+                  value: `Avg ${formatNumber(avgMileage)}`,
+                  fill: "#eab308",
+                  fontSize: 10,
+                  position: "insideTopRight",
+                }}
+              />
+            ) : null}
+            <Line
+              type="monotone"
+              dataKey="mileage"
+              name="Mileage"
+              stroke="#22d3ee"
+              strokeWidth={2.5}
+              dot={{ r: 4, fill: "#22d3ee", stroke: "#0e7490", strokeWidth: 1 }}
+              activeDot={{ r: 6, fill: "#67e8f9" }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </ChartCard>
+  );
+};
+
 const Analysis = () => {
   const {
     history,
@@ -356,6 +520,8 @@ const Analysis = () => {
   const cycleCategories = analysis?.categories || [];
   const cycleExpenses = analysis?.expenses || [];
   const cycleSavings = analysis?.savings || [];
+  const fuelAnalysis = analysis?.fuel_analysis;
+  const hasFuelHistory = (fuelAnalysis?.history?.length || 0) > 0;
   const totalSpentCategories = useMemo(
     () =>
       cycleCategories.filter((item) => Number(item.spent_amount || 0) > 0).length,
@@ -425,7 +591,7 @@ const Analysis = () => {
                       key={cycle.id}
                       type="button"
                       onClick={() => handleSelectCycle(cycle.id)}
-                      className={`min-w-[9.5rem] shrink-0 rounded-xl border px-3 py-2.5 text-left transition ${
+                      className={`min-w-[9.5rem] mb-2 shrink-0 rounded-xl border px-3 py-2.5 text-left transition ${
                         isActive
                           ? "border-[#9d4edd] bg-[#5a189a]/50"
                           : "border-[#e0aaff1f] bg-[#240046] hover:border-[#7b2cbf]/60"
@@ -491,8 +657,13 @@ const Analysis = () => {
 
               <section className="mb-4 space-y-4">
                 <SectionTitle title="Visual Insights" />
-                <FinancialOverviewChart analysis={analysis} />
-                <CategoryComparisonChart categories={cycleCategories} />
+                {hasFuelHistory ? (
+                  <FuelMileageChart fuelAnalysis={fuelAnalysis} />
+                ) : null}
+                <div className="grid grid-cols-2 gap-3 [&>*:only-child]:col-span-2">
+                  <FinancialOverviewChart analysis={analysis} />
+                  <CategoryComparisonChart categories={cycleCategories} />
+                </div>
                 {totalSpentCategories > 0 ? (
                   <ExpenseSplitChart categories={cycleCategories} />
                 ) : null}
@@ -512,18 +683,26 @@ const Analysis = () => {
                       const planned = Number(category.planned_budget || 0);
                       const spent = Number(category.spent_amount || 0);
                       const remaining = Number(category.remaining_amount || 0);
-                      const usagePercent =
-                        planned > 0 ? Math.min((spent / planned) * 100, 100) : 0;
-                      const overBudget = remaining < 0;
+                      const rawPercent =
+                        planned > 0 ? (spent / planned) * 100 : 0;
+                      const barWidth = Math.min(rawPercent, 100);
+                      const status = getBudgetStatus(rawPercent);
+                      const overBudget = rawPercent > 100;
 
                       return (
                         <div
                           key={category.id}
-                          className="rounded-xl border border-[#e0aaff1f] bg-[#240046] px-2.5 py-2"
+                          className={`rounded-xl border bg-[#240046] px-2.5 py-2 ${
+                            overBudget ? "budget-card-over" : "border-[#e0aaff1f]"
+                          }`}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
+                                <span
+                                  className="h-2 w-2 shrink-0 rounded-full"
+                                  style={{ background: status.bar }}
+                                />
                                 <p className="truncate text-sm font-semibold text-white">
                                   {category.name}
                                 </p>
@@ -533,39 +712,46 @@ const Analysis = () => {
                               </div>
                               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px]">
                                 <span className="text-[#9d4edd]">
-                                  Planned <span className="text-white">{formatAmount(planned)}</span>
+                                  Planned{" "}
+                                  <span className="text-white">
+                                    {formatAmount(planned)}
+                                  </span>
                                 </span>
                                 <span className="text-[#9d4edd]">
-                                  Spent <span className="text-[#facc15]">{formatAmount(spent)}</span>
+                                  Spent{" "}
+                                  <span className="text-white">
+                                    {formatAmount(spent)}
+                                  </span>
                                 </span>
-                                <span
-                                  className={overBudget ? "text-[#f87171]" : "text-[#4ade80]"}
-                                >
-                                  Left {formatAmount(remaining)}
+                                <span style={{ color: status.text }}>
+                                  {overBudget
+                                    ? `${formatAmount(Math.abs(remaining))} over`
+                                    : `${formatAmount(remaining)} left`}
                                 </span>
                               </div>
                             </div>
 
                             <div className="shrink-0 text-right">
                               <p
-                                className={`text-[10px] font-medium ${
-                                  overBudget ? "text-[#f87171]" : "text-[#9d4edd]"
-                                }`}
+                                className="text-[10px] font-semibold"
+                                style={{ color: status.text }}
                               >
-                                {overBudget
-                                  ? "Exceeded"
-                                  : `${Math.round(usagePercent)}% used`}
+                                {rawPercent.toFixed(0)}%
                               </p>
                             </div>
                           </div>
 
                           <div className="mt-1.5">
-                            <div className="h-1 overflow-hidden rounded-full bg-[#3c096c]/55">
+                            <div
+                              className="h-1 overflow-hidden rounded-full"
+                              style={{ background: status.track }}
+                            >
                               <div
-                                className={`h-full rounded-full ${
-                                  overBudget ? "bg-[#f87171]" : "bg-[#22c55e]"
-                                }`}
-                                style={{ width: `${Math.max(8, usagePercent)}%` }}
+                                className="h-full rounded-full transition-[width,background-color] duration-300 ease-out"
+                                style={{
+                                  width: `${barWidth}%`,
+                                  background: status.bar,
+                                }}
                               />
                             </div>
                           </div>

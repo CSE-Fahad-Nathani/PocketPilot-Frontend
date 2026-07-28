@@ -15,15 +15,15 @@ import useCycleStore from "../store/cycleStore";
 
 const activePrimaryNav = [
   { to: "/", label: "Home", shortLabel: "Home", end: true, Icon: FiHome },
-  { to: "/income", label: "Income", shortLabel: "Income", Icon: FiCreditCard },
   { to: "/expenses", label: "Spend", shortLabel: "Spend", Icon: FiLayers },
-  { to: "/transfers", label: "Rebalance", shortLabel: "Moves", Icon: FiRepeat },
   { to: "/categories", label: "Budgets", shortLabel: "Budget", Icon: FiGrid },
 ];
 
 const activeMoreNav = [
-  { to: "/analysis", label: "Stats", shortLabel: "Stats", Icon: FiBarChart2 },
-  { to: "/transactions", label: "History", shortLabel: "History", Icon: FiClock },
+  { to: "/income", label: "Income", Icon: FiCreditCard },
+  { to: "/transfers", label: "Moves", Icon: FiRepeat },
+  { to: "/analysis", label: "Stats", Icon: FiBarChart2 },
+  { to: "/transactions", label: "History", Icon: FiClock },
 ];
 
 const setupPrimaryNav = [
