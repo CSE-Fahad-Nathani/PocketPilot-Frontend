@@ -1,11 +1,11 @@
 import {
   FiBarChart2,
-  FiChevronUp,
   FiClock,
   FiCreditCard,
   FiGrid,
   FiHome,
   FiLayers,
+  FiX,
   FiMoreHorizontal,
   FiRepeat,
 } from "react-icons/fi";
@@ -57,11 +57,27 @@ const BottomNav = () => {
       <div className="mx-auto max-w-md">
         <div className="relative rounded-[28px] border border-[#e0aaff1f] bg-[#240046]/95 px-2 py-2 shadow-[0_16px_40px_rgba(16,0,43,0.45)] backdrop-blur-xl">
           {moreOpen ? (
-            <div className="absolute bottom-[calc(100%+10px)] right-2 w-48 rounded-3xl border border-[#e0aaff1f] bg-[#240046]/98 p-2 shadow-[0_18px_40px_rgba(16,0,43,0.5)] backdrop-blur-xl">
-              <div className="mb-1 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-[#9d4edd]">
-                More
+            <div className="absolute inset-x-0 bottom-[calc(100%+12px)] rounded-[28px] border border-cyan-400/15 bg-[linear-gradient(180deg,rgba(8,47,73,0.98),rgba(15,23,42,0.98))] p-3 shadow-[0_18px_40px_rgba(8,47,73,0.45)] backdrop-blur-xl">
+              <div className="mb-3 flex items-center justify-between px-1">
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-cyan-300">
+                    More
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-slate-300">
+                    Quick access to extra pages
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMoreOpen(false)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-cyan-400/20 bg-slate-900/40 text-cyan-200 transition hover:bg-slate-800/70"
+                  aria-label="Close more menu"
+                >
+                  <FiX size={14} />
+                </button>
               </div>
-              <div className="space-y-1">
+
+              <div className="grid grid-cols-2 gap-2">
                 {moreNav.map(({ to, label, Icon }) => {
                   const isActive = location.pathname === to;
 
@@ -69,22 +85,27 @@ const BottomNav = () => {
                     <NavLink
                       key={to}
                       to={to}
-                      className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition ${
+                      className={`flex items-center gap-3 rounded-2xl border px-3 py-3 text-sm transition ${
                         isActive
-                          ? "bg-[#5a189a]/60 text-white"
-                          : "text-[#c77dff] hover:bg-[#3c096c]/45"
+                          ? "border-cyan-300/35 bg-cyan-400/12 text-white shadow-[0_8px_20px_rgba(34,211,238,0.14)]"
+                          : "border-slate-700 bg-slate-900/35 text-slate-200 hover:bg-slate-800/65"
                       }`}
                     >
                       <span
-                        className={`inline-flex h-9 w-9 items-center justify-center rounded-full ${
+                        className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl ${
                           isActive
-                            ? "bg-[#c77dff]/12 text-white"
-                            : "bg-[#3c096c]/35 text-[#c77dff]"
+                            ? "bg-cyan-300/12 text-cyan-100"
+                            : "bg-slate-800/80 text-cyan-200"
                         }`}
                       >
                         <Icon size={16} />
                       </span>
-                      <span className="font-medium">{label}</span>
+                      <div className="min-w-0">
+                        <span className="block font-medium">{label}</span>
+                        <span className="block text-[10px] text-slate-400">
+                          Open {label.toLowerCase()}
+                        </span>
+                      </div>
                     </NavLink>
                   );
                 })}
@@ -145,7 +166,7 @@ const BottomNav = () => {
                     : "border-transparent bg-[#3c096c]/35 text-[#c77dff] group-hover:bg-[#3c096c]/55"
                 }`}
               >
-                {moreOpen ? <FiChevronUp size={15} /> : <FiMoreHorizontal size={15} />}
+                {moreOpen ? <FiX size={15} /> : <FiMoreHorizontal size={15} />}
               </span>
               <span className="text-[10px] font-medium leading-none">More</span>
             </button>
