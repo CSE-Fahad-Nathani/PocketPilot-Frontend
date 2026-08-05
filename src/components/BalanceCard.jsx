@@ -1,12 +1,19 @@
+import { FiSettings } from "react-icons/fi";
+
 const BalanceCard = ({
   currentBalance,
   totalIncome,
   totalBudget,
   totalExpense = 0,
   savedAmount = 0,
+  trackedBalance = 0,
+  trackedOver = false,
+  onOpenSettings,
+  settingsLoading = false,
 }) => {
   const balanceValue = Number(currentBalance) || 0;
   const leftValue = Number(savedAmount) || 0;
+  const trackedValue = Number(trackedBalance) || 0;
 
   const stats = [
     {
@@ -51,17 +58,45 @@ const BalanceCard = ({
 
   return (
     <div className="rounded-2xl border border-[#e0aaff1f] bg-[#240046] px-4 py-3">
-      <div className="flex items-end justify-between gap-3">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-wide text-[#c77dff]">
             Balance
           </p>
           <h2
-            className={`mt-0.5 text-2xl font-bold leading-none ${
+            className={`mt-0.5 text-4xl font-bold leading-none ${
               balanceValue < 0 ? "text-[#f87171]" : "text-[#4ade80]"
             }`}
           >
             ₹{balanceValue.toLocaleString()}
+          </h2>
+        </div>
+
+        <div
+          className={`w-fit shrink-0 rounded-xl border px-4 py-2 text-right ${
+            trackedOver ? "budget-card-over" : "border-[#22d3ee]/20 bg-[#0891b2]/10"
+          }`}
+        >
+          <div className="flex items-center justify-end gap-1">
+            <p className="text-[10px] uppercase tracking-wide text-[#67e8f9]">
+              Tracked
+            </p>
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              disabled={settingsLoading}
+              className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[#22d3ee]/25 bg-[#0891b2]/15 text-[#67e8f9] transition hover:bg-[#0891b2]/25 disabled:opacity-50"
+              aria-label="Configure tracked balance"
+            >
+              <FiSettings size={12} />
+            </button>
+          </div>
+          <h2
+            className={`mt-0.5 text-xl font-bold leading-none ${
+              trackedOver ? "text-[#fca5a5]" : "text-[#22d3ee]"
+            }`}
+          >
+            ₹{trackedValue.toLocaleString()}
           </h2>
         </div>
       </div>

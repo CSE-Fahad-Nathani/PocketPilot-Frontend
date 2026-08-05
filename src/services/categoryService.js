@@ -20,9 +20,15 @@ const archiveCategory = async (id) => {
   return response.data;
 };
 
+const importCategoriesFromCycle = async (payload) => {
+  const response = await api.post("/categories/import-from-cycle", payload);
+  return response.data;
+};
+
 export default {
   createCategory,
   getCategories,
   updateCategory,
   archiveCategory,
+  importCategoriesFromCycle,
 };

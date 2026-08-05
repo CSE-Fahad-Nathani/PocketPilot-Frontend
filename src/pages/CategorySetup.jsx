@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 
 import useCycleStore from "../store/cycleStore";
 import useCategoryStore from "../store/categoryStore";
+import * as cycleService from "../services/cycleService";
+import categoryService from "../services/categoryService";
 
 import ScreenLayout from "../components/ScreenLayout";
 import PageHeader from "../components/PageHeader";
@@ -11,6 +13,7 @@ import SuggestTextInput from "../components/SuggestTextInput";
 import PrimaryButton from "../components/PrimaryButton";
 import CategoryTypeSelect, { FlowBadge } from "../components/CategoryTypeSelect";
 import { ArchiveAction, EditAction } from "../components/RowActions";
+import ImportBudgetsModal from "../components/ImportBudgetsModal";
 import {
   isFixedPaymentType,
 } from "../utils/expenseExtraData";
@@ -64,17 +67,107 @@ const CategorySetup = () => {
     createCategory,
     updateCategory,
     archiveCategory,
+    importCategoriesFromCycle,
   } = useCategoryStore();
 
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [previousCycle, setPreviousCycle] = useState(null);
+  const [sourceCategories, setSourceCategories] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [loadingSource, setLoadingSource] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     if (activeCycle?.id) {
       getCategories(activeCycle.id);
     }
   }, [activeCycle]);
+
+  useEffect(() => {
+    const loadPrevious = async () => {
+      try {
+        const response = await cycleService.getCycleHistory();
+        const latest = response.success ? response.data?.[0] : null;
+        setPreviousCycle(latest || null);
+      } catch {
+        setPreviousCycle(null);
+      }
+    };
+
+    loadPrevious();
+  }, []);
+
+  const openImportModal = async () => {
+    if (!previousCycle?.id) {
+      showToast("info", "No previous cycle found to import from.");
+      return;
+    }
+
+    setImportOpen(true);
+    setLoadingSource(true);
+
+    try {
+      const response = await categoryService.getCategories(previousCycle.id);
+
+      if (response.success && response.data?.length) {
+        setSourceCategories(response.data);
+        setSelectedIds(response.data.map((item) => item.id));
+      } else {
+        setSourceCategories([]);
+        setSelectedIds([]);
+      }
+    } catch {
+      setSourceCategories([]);
+      setSelectedIds([]);
+      showToast("error", "Failed to load previous budgets.");
+    } finally {
+      setLoadingSource(false);
+    }
+  };
+
+  const toggleSelected = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleConfirmImport = async () => {
+    if (!activeCycle?.id || !previousCycle?.id || !selectedIds.length) return;
+
+    try {
+      setImporting(true);
+
+      const response = await importCategoriesFromCycle({
+        targetCycleId: activeCycle.id,
+        sourceCycleId: previousCycle.id,
+        categoryIds: selectedIds,
+      });
+
+      if (!response.success) {
+        showToast("error", response.message || "Failed to import budgets.");
+        return;
+      }
+
+      setImportOpen(false);
+      showToast(
+        "success",
+        response.message ||
+          `${response.data.importedCount} budgets imported.`
+      );
+    } catch (error) {
+      showToast(
+        "error",
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to import budgets."
+      );
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const totalBudget = useMemo(() => {
     return categories.reduce((sum, item) => sum + Number(item.budget), 0);
@@ -281,9 +374,18 @@ const CategorySetup = () => {
         </div>
 
         {categories.length === 0 ? (
-          <p className="rounded-2xl border border-[#e0aaff1f] bg-[#240046] py-4 text-center text-xs text-[#c77dff]">
-            No categories yet.
-          </p>
+          <div className="rounded-2xl border border-[#e0aaff1f] bg-[#240046] px-4 py-5 text-center">
+            <p className="text-xs text-[#c77dff]">No categories yet.</p>
+            {previousCycle && (
+              <button
+                type="button"
+                onClick={openImportModal}
+                className="mt-3 rounded-xl border border-[#22d3ee]/30 bg-[#0891b2]/15 px-4 py-2 text-xs font-medium text-[#67e8f9] transition hover:bg-[#0891b2]/25"
+              >
+                Import from {previousCycle.cycle_name || previousCycle.cycleName}
+              </button>
+            )}
+          </div>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-[#e0aaff1f] bg-[#240046] divide-y divide-[#3c096c]">
             {categories.map((category) => {
@@ -325,6 +427,22 @@ const CategorySetup = () => {
           </div>
         )}
       </div>
+
+      <ImportBudgetsModal
+        open={importOpen}
+        sourceCycleName={previousCycle?.cycle_name || previousCycle?.cycleName}
+        categories={sourceCategories}
+        selectedIds={selectedIds}
+        loading={loadingSource}
+        saving={importing}
+        onClose={() => setImportOpen(false)}
+        onToggle={toggleSelected}
+        onSelectAll={() =>
+          setSelectedIds(sourceCategories.map((item) => item.id))
+        }
+        onClearAll={() => setSelectedIds([])}
+        onConfirm={handleConfirmImport}
+      />
     </ScreenLayout>
   );
 };

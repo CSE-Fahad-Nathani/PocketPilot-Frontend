@@ -112,6 +112,36 @@ const useCategoryStore = create((set) => ({
       };
     }
   },
+
+  importCategoriesFromCycle: async (payload) => {
+    set({ loading: true });
+
+    try {
+      const response = await categoryService.importCategoriesFromCycle(payload);
+
+      if (response.success) {
+        const imported = response.data?.imported || [];
+        set((state) => ({
+          categories: [...state.categories, ...imported],
+          loading: false,
+        }));
+      } else {
+        set({ loading: false });
+      }
+
+      return response;
+    } catch (error) {
+      set({ loading: false });
+
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to import budgets.",
+      };
+    }
+  },
 }));
 
 export default useCategoryStore;

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import useCycleStore from "../store/cycleStore";
@@ -11,10 +11,15 @@ import BudgetCard from "../components/BudgetCard";
 import FixedPaymentCard from "../components/FixedPaymentCard";
 import BalanceCard from "../components/BalanceCard";
 import FuelAnalysisModal from "../components/FuelAnalysisModal";
+import TrackedBalanceSettingsModal from "../components/TrackedBalanceSettingsModal";
 import ScreenLayout from "../components/ScreenLayout";
 import EndCycleModal from "../components/EndCycleModal";
 import { isSimpleExpense, resolveExtraDataType } from "../utils/expenseExtraData";
 import { showToast } from "../store/toastStore";
+import {
+  getTrackedBalanceSettings,
+  saveTrackedBalanceSettings,
+} from "../services/trackedBalanceService";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -28,6 +33,13 @@ const Dashboard = () => {
   const [confirmingEnd, setConfirmingEnd] = useState(false);
   const [fuelModalOpen, setFuelModalOpen] = useState(false);
   const [fuelCategoryName, setFuelCategoryName] = useState("");
+  const [trackedSettingsOpen, setTrackedSettingsOpen] = useState(false);
+  const [trackedSettingsLoading, setTrackedSettingsLoading] = useState(false);
+  const [trackedSettingsSaving, setTrackedSettingsSaving] = useState(false);
+  const [includeLeft, setIncludeLeft] = useState(true);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
+  const [draftIncludeLeft, setDraftIncludeLeft] = useState(true);
+  const [draftCategoryIds, setDraftCategoryIds] = useState([]);
 
   const totalIncome = income.reduce(
     (sum, item) => sum + Number(item.amount),
@@ -53,6 +65,54 @@ const Dashboard = () => {
     return acc;
   }, {});
 
+  const loadTrackedSettings = async (cycleId, categoryList) => {
+    setTrackedSettingsLoading(true);
+
+    try {
+      const response = await getTrackedBalanceSettings(cycleId);
+
+      if (response.success && response.data) {
+        setIncludeLeft(Boolean(response.data.includeLeft));
+        setSelectedCategoryIds(response.data.categoryIds || []);
+        return;
+      }
+
+      setIncludeLeft(true);
+      setSelectedCategoryIds(categoryList.map((category) => category.id));
+    } catch {
+      setIncludeLeft(true);
+      setSelectedCategoryIds(categoryList.map((category) => category.id));
+    } finally {
+      setTrackedSettingsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!activeCycle?.id || categories.length === 0) {
+      setSelectedCategoryIds([]);
+      setIncludeLeft(true);
+      return;
+    }
+
+    loadTrackedSettings(activeCycle.id, categories);
+  }, [activeCycle?.id, categories.length]);
+
+  const trackedBalance = useMemo(() => {
+    const selectedSet = new Set(selectedCategoryIds.map((id) => Number(id)));
+
+    const categoryRemaining = categories.reduce((sum, category) => {
+      if (!selectedSet.has(Number(category.id))) return sum;
+
+      const budget = Number(category.budget) || 0;
+      const spent = spentByCategory[category.id] || 0;
+      return sum + (budget - spent);
+    }, 0);
+
+    return categoryRemaining + (includeLeft ? savedAmount : 0);
+  }, [categories, selectedCategoryIds, spentByCategory, includeLeft, savedAmount]);
+
+  const trackedOver = trackedBalance < 0;
+
   const { flexibleBudgets, fixedPayments } = useMemo(() => {
     const flexible = [];
     const fixed = [];
@@ -73,6 +133,53 @@ const Dashboard = () => {
     const budget = Number(category.budget) || 0;
     return budget > 0 && spent >= budget;
   }).length;
+
+  const openTrackedSettings = () => {
+    setDraftIncludeLeft(includeLeft);
+    setDraftCategoryIds([...selectedCategoryIds]);
+    setTrackedSettingsOpen(true);
+  };
+
+  const toggleDraftCategory = (categoryId) => {
+    setDraftCategoryIds((prev) => {
+      const id = Number(categoryId);
+      return prev.includes(id)
+        ? prev.filter((item) => item !== id)
+        : [...prev, id];
+    });
+  };
+
+  const handleSaveTrackedSettings = async () => {
+    if (!activeCycle?.id) return;
+
+    try {
+      setTrackedSettingsSaving(true);
+
+      const response = await saveTrackedBalanceSettings(activeCycle.id, {
+        includeLeft: draftIncludeLeft,
+        categoryIds: draftCategoryIds,
+      });
+
+      if (!response.success) {
+        showToast("error", response.message || "Failed to save tracked balance.");
+        return;
+      }
+
+      setIncludeLeft(Boolean(response.data.includeLeft));
+      setSelectedCategoryIds(response.data.categoryIds || []);
+      setTrackedSettingsOpen(false);
+      showToast("success", "Tracked balance updated.");
+    } catch (error) {
+      showToast(
+        "error",
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to save tracked balance."
+      );
+    } finally {
+      setTrackedSettingsSaving(false);
+    }
+  };
 
   const handleEndCycleClick = async () => {
     if (!activeCycle?.id || verifyingEnd) return;
@@ -158,6 +265,10 @@ const Dashboard = () => {
         totalBudget={totalBudget}
         totalExpense={totalExpense}
         savedAmount={savedAmount}
+        trackedBalance={trackedBalance}
+        trackedOver={trackedOver}
+        onOpenSettings={openTrackedSettings}
+        settingsLoading={trackedSettingsLoading}
       />
 
       <div className="mb-3 mt-4 flex items-center justify-between">
@@ -252,6 +363,22 @@ const Dashboard = () => {
         open={fuelModalOpen}
         categoryName={fuelCategoryName}
         onClose={() => setFuelModalOpen(false)}
+      />
+
+      <TrackedBalanceSettingsModal
+        open={trackedSettingsOpen}
+        categories={categories}
+        includeLeft={draftIncludeLeft}
+        selectedCategoryIds={draftCategoryIds}
+        saving={trackedSettingsSaving}
+        onClose={() => setTrackedSettingsOpen(false)}
+        onToggleCategory={toggleDraftCategory}
+        onToggleIncludeLeft={() => setDraftIncludeLeft((prev) => !prev)}
+        onSelectAll={() =>
+          setDraftCategoryIds(categories.map((category) => category.id))
+        }
+        onClearAll={() => setDraftCategoryIds([])}
+        onSave={handleSaveTrackedSettings}
       />
     </ScreenLayout>
   );
