@@ -1,33 +1,50 @@
 import { useEffect, useState } from "react";
-import { FiEye, FiEyeOff, FiLock, FiUser } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi";
 
 import TextInput from "../components/TextInput";
 import useAuthStore from "../store/authStore";
 import { wakeServer } from "../utils/wakeServer";
 
 const Login = () => {
-  const { login, error, clearError } = useAuthStore();
+  const { login, register, error, clearError } = useAuthStore();
 
-  const [userId, setUserId] = useState("");
+  const [mode, setMode] = useState("login");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const isRegister = mode === "register";
 
   useEffect(() => {
     wakeServer();
   }, []);
 
-  const handleSubmit = (event) => {
+  const switchMode = (nextMode) => {
+    clearError();
+    setMode(nextMode);
+  };
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
     clearError();
     setSubmitting(true);
 
-    const result = login(userId, password);
-
-    if (!result.success) {
+    try {
+      if (isRegister) {
+        await register({ name, email, password });
+      } else {
+        await login(email, password);
+      }
+    } finally {
       setSubmitting(false);
     }
   };
+
+  const canSubmit = isRegister
+    ? name.trim() && email.trim() && password.length >= 6
+    : email.trim() && password;
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#10002b] px-5 py-10">
@@ -43,13 +60,15 @@ const Login = () => {
             <span className="text-lg font-bold text-white">PP</span>
           </div>
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-[#9d4edd]">
-            Welcome back
+            {isRegister ? "Create account" : "Welcome back"}
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-white">
             PocketPilot
           </h1>
           <p className="mt-2 text-sm text-[#c77dff]">
-            Sign in to continue managing your cycle.
+            {isRegister
+              ? "Register to start your own budget cycles."
+              : "Sign in to continue managing your cycle."}
           </p>
         </div>
 
@@ -57,21 +76,44 @@ const Login = () => {
           onSubmit={handleSubmit}
           className="rounded-3xl border border-[#e0aaff1f] bg-[#240046]/90 p-5 shadow-[0_20px_60px_rgba(16,0,43,0.55)] backdrop-blur-sm"
         >
+          {isRegister ? (
+            <div className="relative">
+              <FiUser
+                size={14}
+                className="pointer-events-none absolute left-3 top-[38px] z-10 text-[#9d4edd]"
+              />
+              <div className="[&_input]:pl-9">
+                <TextInput
+                  compact
+                  label="Name"
+                  name="name"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(e) => {
+                    clearError();
+                    setName(e.target.value);
+                  }}
+                />
+              </div>
+            </div>
+          ) : null}
+
           <div className="relative">
-            <FiUser
+            <FiMail
               size={14}
               className="pointer-events-none absolute left-3 top-[38px] z-10 text-[#9d4edd]"
             />
             <div className="[&_input]:pl-9">
               <TextInput
                 compact
-                label="User ID"
-                name="userId"
-                placeholder="Enter user ID"
-                value={userId}
+                label="Email"
+                name="email"
+                type="email"
+                placeholder="you@email.com"
+                value={email}
                 onChange={(e) => {
                   clearError();
-                  setUserId(e.target.value);
+                  setEmail(e.target.value);
                 }}
               />
             </div>
@@ -88,7 +130,7 @@ const Login = () => {
                 label="Password"
                 name="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Enter password"
+                placeholder={isRegister ? "Min 6 characters" : "Enter password"}
                 value={password}
                 onChange={(e) => {
                   clearError();
@@ -114,11 +156,28 @@ const Login = () => {
 
           <button
             type="submit"
-            disabled={submitting || !userId.trim() || !password}
+            disabled={submitting || !canSubmit}
             className="mt-1 w-full rounded-2xl bg-gradient-to-r from-[#5a189a] to-[#7b2cbf] py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {submitting ? "Signing in…" : "Sign In"}
+            {submitting
+              ? isRegister
+                ? "Creating…"
+                : "Signing in…"
+              : isRegister
+                ? "Create Account"
+                : "Sign In"}
           </button>
+
+          <p className="mt-4 text-center text-xs text-[#9d4edd]">
+            {isRegister ? "Already have an account?" : "New here?"}{" "}
+            <button
+              type="button"
+              onClick={() => switchMode(isRegister ? "login" : "register")}
+              className="font-medium text-[#c77dff] transition hover:text-white"
+            >
+              {isRegister ? "Sign in" : "Create account"}
+            </button>
+          </p>
         </form>
       </div>
     </div>

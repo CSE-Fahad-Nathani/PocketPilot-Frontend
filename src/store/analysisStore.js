@@ -20,14 +20,27 @@ const useAnalysisStore = create((set) => ({
         set({
           history,
           loadingHistory: false,
+          ...(history.length
+            ? {}
+            : { selectedCycleId: null, analysis: null }),
         });
         return { ...response, data: history };
       }
 
-      set({ loadingHistory: false });
+      set({
+        history: [],
+        selectedCycleId: null,
+        analysis: null,
+        loadingHistory: false,
+      });
       return response;
     } catch (error) {
-      set({ loadingHistory: false });
+      set({
+        history: [],
+        selectedCycleId: null,
+        analysis: null,
+        loadingHistory: false,
+      });
       return {
         success: false,
         message:
@@ -56,12 +69,20 @@ const useAnalysisStore = create((set) => ({
           loadingAnalysis: false,
         });
       } else {
-        set({ loadingAnalysis: false });
+        set({
+          analysis: null,
+          selectedCycleId: null,
+          loadingAnalysis: false,
+        });
       }
 
       return response;
     } catch (error) {
-      set({ loadingAnalysis: false });
+      set({
+        analysis: null,
+        selectedCycleId: null,
+        loadingAnalysis: false,
+      });
       return {
         success: false,
         message:

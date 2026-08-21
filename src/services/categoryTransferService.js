@@ -6,14 +6,12 @@ export const createTransfer = async (payload) => {
 };
 
 export const getTransfers = async (cycleId) => {
-  const response = await api.get(
-    `/category-transfers?cycleId=${cycleId}`
-  );
+  const response = await api.post("/category-transfers/list", { cycleId });
   return response.data;
 };
 
 export const getTransferById = async (id) => {
-  const response = await api.get(`/category-transfers/${id}`);
+  const response = await api.post("/category-transfers/get", { id });
   return response.data;
 };
 

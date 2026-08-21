@@ -14,9 +14,10 @@ const useCycleStore = create((set) => ({
 
     try {
       const response = await cycleService.getActiveCycle();
+      const cycle = response.data || null;
 
       set({
-        activeCycle: response.data || null,
+        activeCycle: cycle,
         loading: false,
       });
 
@@ -43,7 +44,6 @@ const useCycleStore = create((set) => ({
       return response;
     }
 
-    // Active cycle already exists — sync from GET /cycles/active
     await useCycleStore.getState().getActiveCycle();
     return response;
   },
@@ -72,7 +72,6 @@ const useCycleStore = create((set) => ({
         useIncomeStore.setState({ income: [] });
         useExpenseStore.setState({ expenses: [] });
         useCategoryTransferStore.setState({ transfers: [] });
-        // Confirm with GET /cycles/active (should be null)
         await useCycleStore.getState().getActiveCycle();
       }
 

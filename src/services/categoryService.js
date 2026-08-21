@@ -6,7 +6,7 @@ const createCategory = async (data) => {
 };
 
 const getCategories = async (cycleId) => {
-  const response = await api.get(`/categories?cycleId=${cycleId}`);
+  const response = await api.post("/categories/list", { cycleId });
   return response.data;
 };
 

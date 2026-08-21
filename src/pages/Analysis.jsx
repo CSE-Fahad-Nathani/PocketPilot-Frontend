@@ -336,6 +336,7 @@ const Analysis = () => {
     loadingAnalysis,
     getHistory,
     getAnalysis,
+    clearAnalysis,
   } = useAnalysisStore();
 
   const { savings, loading: loadingSavings, getSavings, deleteSaving } =
@@ -351,6 +352,8 @@ const Analysis = () => {
 
       if (historyResponse.success && historyResponse.data?.length) {
         await getAnalysis(historyResponse.data[0].id);
+      } else {
+        clearAnalysis();
       }
     };
 

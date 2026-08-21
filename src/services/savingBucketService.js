@@ -1,7 +1,7 @@
 import api from "./api";
 
 export const getSavingBuckets = async () => {
-  const response = await api.get("/saving-buckets");
+  const response = await api.post("/saving-buckets/list", {});
   return response.data;
 };
 
@@ -21,6 +21,6 @@ export const transferBetweenBuckets = async (payload) => {
 };
 
 export const archiveSavingBucket = async (id) => {
-  const response = await api.patch(`/saving-buckets/archive/${id}`);
+  const response = await api.post("/saving-buckets/archive", { id });
   return response.data;
 };

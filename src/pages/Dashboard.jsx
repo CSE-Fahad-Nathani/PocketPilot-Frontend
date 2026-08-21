@@ -5,6 +5,7 @@ import useCycleStore from "../store/cycleStore";
 import useCategoryStore from "../store/categoryStore";
 import useIncomeStore from "../store/incomeStore";
 import useExpenseStore from "../store/expenseStore";
+import useAuthStore from "../store/authStore";
 
 import FloatingActionButton from "../components/FloatingActionButton";
 import BudgetCard from "../components/BudgetCard";
@@ -23,6 +24,7 @@ import {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { session } = useAuthStore();
   const { activeCycle, verifyEndCycle, endCycle } = useCycleStore();
   const { categories } = useCategoryStore();
   const { income } = useIncomeStore();
@@ -241,12 +243,12 @@ const Dashboard = () => {
     <ScreenLayout>
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] uppercase tracking-wide text-[#c77dff]">
-            Current cycle
-          </p>
-          <h1 className="truncate text-lg font-bold leading-tight text-white">
-            {activeCycle?.cycle_name || activeCycle?.cycleName}
+          <h1 className="truncate text-xl font-bold leading-tight text-white">
+            Welcome {session?.name || "there"}
           </h1>
+          <p className="mt-0.5 truncate text-[11px] uppercase tracking-wide text-[#c77dff]">
+            {activeCycle?.cycle_name || activeCycle?.cycleName || "Current cycle"}
+          </p>
         </div>
 
         <button

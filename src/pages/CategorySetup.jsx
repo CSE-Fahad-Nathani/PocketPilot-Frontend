@@ -21,19 +21,20 @@ import { showToast } from "../store/toastStore";
 
 const CATEGORY_NAME_SUGGESTIONS = [
   "Personal",
-  "Access Fuel",
-  "SIP 1",
-  "SIP 2",
-  "Access EMI",
-  "Pulsar EMI",
-  "Education Load EMI",
+  "Fuel",
+  "SIP",
+  "EMI",
+  "Education Loan",
+  "Rent",
+  "Bills",
   "Gym",
 ];
 
 const NAME_TYPE_HINTS = [
   { match: /fuel/i, type: "fuel" },
   { match: /sip/i, type: "sip" },
-  { match: /emi|loan|load/i, type: "emi" },
+  { match: /emi|loan/i, type: "emi" },
+  { match: /rent|bill/i, type: "bills" },
   { match: /gym|subscription/i, type: "subscription" },
   { match: /personal/i, type: "default" },
 ];

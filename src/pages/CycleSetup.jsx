@@ -4,6 +4,7 @@ import useCategoryStore from "../store/categoryStore";
 import useIncomeStore from "../store/incomeStore";
 import useExpenseStore from "../store/expenseStore";
 import useCategoryTransferStore from "../store/categoryTransferStore";
+import useAuthStore from "../store/authStore";
 import * as cycleService from "../services/cycleService";
 import categoryService from "../services/categoryService";
 
@@ -18,6 +19,7 @@ const CycleSetup = () => {
   const { getIncome } = useIncomeStore();
   const { getExpenses } = useExpenseStore();
   const { getTransfers } = useCategoryTransferStore();
+  const setCycleId = useAuthStore((state) => state.setCycleId);
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -90,6 +92,7 @@ const CycleSetup = () => {
       getTransfers(cycleId),
     ]);
     await getActiveCycle();
+    setCycleId(cycleId);
   };
 
   const createCycleAndMaybeImport = async (categoryIds) => {

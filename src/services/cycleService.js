@@ -6,12 +6,12 @@ export const createCycle = async (payload) => {
 };
 
 export const getActiveCycle = async () => {
-  const response = await api.get("/cycles/active");
+  const response = await api.post("/cycles/active", {});
   return response.data;
 };
 
 export const getCycleHistory = async () => {
-  const response = await api.get("/cycles/history");
+  const response = await api.post("/cycles/history", {});
   return response.data;
 };
 

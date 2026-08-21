@@ -25,6 +25,7 @@ import { wakeServer } from "./utils/wakeServer";
 
 const App = () => {
   const session = useAuthStore((state) => state.session);
+  const setCycleId = useAuthStore((state) => state.setCycleId);
   const { activeCycle, getActiveCycle } = useCycleStore();
   const { getCategories } = useCategoryStore();
   const { getIncome } = useIncomeStore();
@@ -54,12 +55,15 @@ const App = () => {
 
         if (cycleResponse.success && cycleResponse.data) {
           const cycleId = cycleResponse.data.id;
+          setCycleId(cycleId);
           await Promise.all([
             getCategories(cycleId),
             getIncome(cycleId),
             getExpenses(cycleId),
             getTransfers(cycleId),
           ]);
+        } else {
+          setCycleId(null);
         }
       } finally {
         if (!cancelled) setLoading(false);

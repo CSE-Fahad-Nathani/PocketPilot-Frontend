@@ -6,12 +6,12 @@ export const createExpense = async (payload) => {
 };
 
 export const getExpenses = async (cycleId) => {
-  const response = await api.get(`/expenses?cycleId=${cycleId}`);
+  const response = await api.post("/expenses/list", { cycleId });
   return response.data;
 };
 
 export const getExpenseById = async (id) => {
-  const response = await api.get(`/expenses/${id}`);
+  const response = await api.post("/expenses/get", { id });
   return response.data;
 };
 

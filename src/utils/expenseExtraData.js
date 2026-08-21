@@ -168,13 +168,18 @@ export const calcFuelMileage = (distance, liters) => {
 };
 
 const PERSONAL_REASON_SUGGESTIONS = [
-  "Cafe",
-  "Soda",
-  "Gaming",
-  "Outing",
+  "Breakfast",
+  "Lunch",
   "Dinner",
+  "Snack",
+  "Tea / Coffee",
+  "Groceries",
+  "Transport",
+  "Shopping",
+  "Outing",
   "Movies",
-  "Haircut",
+  "Medical",
+  "Misc",
 ];
 
 /** Quick reason picks by category name / type — empty = free text only */

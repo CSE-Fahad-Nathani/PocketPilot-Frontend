@@ -5,12 +5,14 @@ import {
   FiGrid,
   FiHome,
   FiLayers,
+  FiLogOut,
   FiX,
   FiMoreHorizontal,
   FiRepeat,
 } from "react-icons/fi";
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import useAuthStore from "../store/authStore";
 import useCycleStore from "../store/cycleStore";
 
 const activePrimaryNav = [
@@ -37,6 +39,7 @@ const setupMoreNav = [
 
 const BottomNav = () => {
   const { activeCycle } = useCycleStore();
+  const { session, logout } = useAuthStore();
   const location = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -63,8 +66,8 @@ const BottomNav = () => {
                   <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-cyan-300">
                     More
                   </p>
-                  <p className="mt-0.5 text-[11px] text-slate-300">
-                    Quick access to extra pages
+                  <p className="mt-0.5 truncate text-[11px] text-slate-300">
+                    {session?.name || session?.email || "Account"}
                   </p>
                 </div>
                 <button
@@ -110,6 +113,25 @@ const BottomNav = () => {
                   );
                 })}
               </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMoreOpen(false);
+                  logout();
+                }}
+                className="mt-2 flex w-full items-center gap-3 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-3 py-3 text-sm text-rose-200 transition hover:bg-rose-500/15"
+              >
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-200">
+                  <FiLogOut size={16} />
+                </span>
+                <div className="min-w-0 text-left">
+                  <span className="block font-medium">Log out</span>
+                  <span className="block text-[10px] text-rose-200/70">
+                    Switch account
+                  </span>
+                </div>
+              </button>
             </div>
           ) : null}
 

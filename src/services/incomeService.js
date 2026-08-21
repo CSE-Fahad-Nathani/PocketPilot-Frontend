@@ -6,7 +6,7 @@ export const createIncome = async (payload) => {
 };
 
 export const getIncome = async (cycleId) => {
-  const response = await api.get(`/income?cycleId=${cycleId}`);
+  const response = await api.post("/income/list", { cycleId });
   return response.data;
 };
 

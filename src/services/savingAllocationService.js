@@ -1,7 +1,7 @@
 import api from "./api";
 
 export const getPendingSavings = async () => {
-  const response = await api.get("/saving-allocations/pending");
+  const response = await api.post("/saving-allocations/pending", {});
   return response.data;
 };
 
