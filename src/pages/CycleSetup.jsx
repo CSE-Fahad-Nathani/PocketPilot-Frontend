@@ -12,6 +12,7 @@ import PrimaryButton from "../components/PrimaryButton";
 import TextInput from "../components/TextInput";
 import ImportBudgetsModal from "../components/ImportBudgetsModal";
 import { showToast } from "../store/toastStore";
+import { isImportableCategory } from "../utils/categoryFlags";
 
 const CycleSetup = () => {
   const { getActiveCycle } = useCycleStore();
@@ -59,10 +60,11 @@ const CycleSetup = () => {
 
     try {
       const response = await categoryService.getCategories(cycleId);
+      const importable = (response.data || []).filter(isImportableCategory);
 
-      if (response.success && response.data?.length) {
-        setSourceCategories(response.data);
-        setSelectedIds(response.data.map((item) => item.id));
+      if (response.success && importable.length) {
+        setSourceCategories(importable);
+        setSelectedIds(importable.map((item) => item.id));
         return true;
       }
 
@@ -206,6 +208,11 @@ const CycleSetup = () => {
         }}
       >
         <div className="mb-10 text-center">
+          <img
+            src="/favicon.jpg"
+            alt="PocketPilot"
+            className="mx-auto mb-4 h-16 w-16 rounded-2xl object-cover shadow-[0_0_28px_rgba(157,78,221,0.35)]"
+          />
           <h1 className="text-4xl font-bold" style={{ color: "#e0aaff" }}>
             PocketPilot
           </h1>

@@ -27,6 +27,7 @@ import {
   resolveExtraDataType,
 } from "../utils/expenseExtraData";
 import { showToast } from "../store/toastStore";
+import { formatDisplayDate } from "../utils/formatDate";
 
 const emptyForm = (categoryId = "", extraFields = []) => ({
   categoryId,
@@ -42,15 +43,7 @@ const toDateInput = (value) => {
   return String(value).slice(0, 10);
 };
 
-const formatDayLabel = (value) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return toDateInput(value);
-
-  return date.toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-  });
-};
+const formatDayLabel = (value) => formatDisplayDate(value);
 
 const Expenses = () => {
   const { activeCycle } = useCycleStore();

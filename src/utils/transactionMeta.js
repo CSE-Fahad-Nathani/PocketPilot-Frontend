@@ -6,6 +6,8 @@ import {
   FiTrendingDown,
 } from "react-icons/fi";
 
+import { formatDisplayDate, parseDisplayDate } from "./formatDate";
+
 export const TRANSACTION_FILTERS = [
   { id: "all", label: "All", types: null },
   { id: "allocation", label: "Allocation", types: ["ALLOCATION"] },
@@ -81,14 +83,18 @@ export const formatTransactionAmount = (transaction) => {
 };
 
 const toDateKey = (value) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "unknown";
-  return date.toISOString().slice(0, 10);
+  const date = parseDisplayDate(value);
+  if (!date) return "unknown";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
 export const formatGroupLabel = (value) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown";
+  const date = parseDisplayDate(value);
+  if (!date) return "Unknown";
 
   const today = new Date();
   const yesterday = new Date();
@@ -98,11 +104,7 @@ export const formatGroupLabel = (value) => {
   if (key === toDateKey(today)) return "Today";
   if (key === toDateKey(yesterday)) return "Yesterday";
 
-  return date.toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDisplayDate(date);
 };
 
 export const formatTransactionTime = (value) => {

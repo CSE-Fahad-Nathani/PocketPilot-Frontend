@@ -25,6 +25,7 @@ import useSavingStore from "../store/savingStore";
 import { showToast } from "../store/toastStore";
 import { getBudgetStatus } from "../utils/budgetStatus";
 import { isSimpleExpense } from "../utils/expenseExtraData";
+import { formatDisplayDate } from "../utils/formatDate";
 
 const TABS = [
   { id: "cycles", label: "Cycles" },
@@ -37,17 +38,7 @@ const formatAmount = (value) => {
   return `₹${amount.toLocaleString("en-IN")}`;
 };
 
-const formatDate = (value) => {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
-
-  return date.toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-};
+const formatDate = (value) => formatDisplayDate(value);
 
 const SummaryRow = ({ label, value, emphasize = false }) => (
   <div className="flex items-center justify-between gap-3 py-1.5">

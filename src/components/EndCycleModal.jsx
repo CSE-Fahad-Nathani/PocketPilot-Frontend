@@ -458,10 +458,18 @@ const EndCycleModal = ({
           value={summary.total_saved}
           emphasize
         />
+        {Number(summary.unassigned_left) > 0 ? (
+          <SummaryRow
+            label="Unassigned Left → budget"
+            value={summary.unassigned_left}
+          />
+        ) : null}
       </div>
 
       <p className="mt-3 text-[11px] leading-snug text-[#c77dff]">
-        Please verify the above values before ending this cycle.
+        {Number(summary.unassigned_left) > 0
+          ? "Unassigned Left will be saved as a budget on this cycle (not copied to the next one)."
+          : "Please verify the above values before ending this cycle."}
       </p>
 
       <div className="mt-4 space-y-2">

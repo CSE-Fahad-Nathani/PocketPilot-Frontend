@@ -10,22 +10,16 @@ import {
   YAxis,
 } from "recharts";
 
+import { formatDisplayDate } from "../utils/formatDate";
+
 const formatAmount = (value) => {
   const amount = Number(value);
   if (Number.isNaN(amount)) return "₹0";
   return `₹${amount.toLocaleString("en-IN")}`;
 };
 
-const formatShortDate = (value) => {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
-
-  return date.toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-  });
-};
+const formatShortDate = (value) =>
+  formatDisplayDate(value, { includeYear: false });
 
 const formatNumber = (value, digits = 1) => {
   const num = Number(value);

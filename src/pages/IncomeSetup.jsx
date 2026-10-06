@@ -10,6 +10,7 @@ import PrimaryButton from "../components/PrimaryButton";
 import PremiumSelect from "../components/PremiumSelect";
 import { DeleteAction, EditAction } from "../components/RowActions";
 import { showToast } from "../store/toastStore";
+import { formatDisplayDate } from "../utils/formatDate";
 
 const INCOME_TYPES = [
   "Salary",
@@ -32,15 +33,7 @@ const toDateInput = (value) => {
   return String(value).slice(0, 10);
 };
 
-const formatDayLabel = (value) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return toDateInput(value);
-
-  return date.toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-  });
-};
+const formatDayLabel = (value) => formatDisplayDate(value);
 
 const getIncomeDate = (item) => item.income_date || item.incomeDate;
 

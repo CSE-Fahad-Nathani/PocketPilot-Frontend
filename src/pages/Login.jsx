@@ -56,9 +56,11 @@ const Login = () => {
 
       <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7b2cbf] to-[#3c096c] shadow-[0_0_28px_rgba(157,78,221,0.4)]">
-            <span className="text-lg font-bold text-white">PP</span>
-          </div>
+          <img
+            src="/favicon.jpg"
+            alt="PocketPilot"
+            className="mx-auto mb-4 h-16 w-16 rounded-2xl object-cover shadow-[0_0_28px_rgba(157,78,221,0.4)]"
+          />
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-[#9d4edd]">
             {isRegister ? "Create account" : "Welcome back"}
           </p>

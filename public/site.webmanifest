@@ -1,0 +1,17 @@
+{
+  "name": "PocketPilot",
+  "short_name": "PocketPilot",
+  "description": "Take control of every rupee.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#10002b",
+  "theme_color": "#10002b",
+  "icons": [
+    {
+      "src": "/favicon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}

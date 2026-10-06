@@ -45,9 +45,11 @@ const AppLoader = ({
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center">
           <div className="app-loader-ring absolute h-20 w-20 rounded-full border-2 border-[#3c096c]" />
           <div className="app-loader-spin absolute h-20 w-20 rounded-full border-2 border-transparent border-t-[#c77dff] border-r-[#9d4edd]" />
-          <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#5a189a] to-[#240046] shadow-[0_0_24px_rgba(157,78,221,0.35)]">
-            <span className="text-lg font-bold tracking-tight text-white">PP</span>
-          </div>
+          <img
+            src="/favicon.jpg"
+            alt="PocketPilot"
+            className="relative h-12 w-12 rounded-2xl object-cover shadow-[0_0_24px_rgba(157,78,221,0.35)]"
+          />
         </div>
 
         <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-[#9d4edd]">

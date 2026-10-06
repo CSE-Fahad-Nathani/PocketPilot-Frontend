@@ -17,6 +17,7 @@ import ImportBudgetsModal from "../components/ImportBudgetsModal";
 import {
   isFixedPaymentType,
 } from "../utils/expenseExtraData";
+import { isImportableCategory } from "../utils/categoryFlags";
 import { showToast } from "../store/toastStore";
 
 const CATEGORY_NAME_SUGGESTIONS = [
@@ -112,10 +113,11 @@ const CategorySetup = () => {
 
     try {
       const response = await categoryService.getCategories(previousCycle.id);
+      const importable = (response.data || []).filter(isImportableCategory);
 
-      if (response.success && response.data?.length) {
-        setSourceCategories(response.data);
-        setSelectedIds(response.data.map((item) => item.id));
+      if (response.success && importable.length) {
+        setSourceCategories(importable);
+        setSelectedIds(importable.map((item) => item.id));
       } else {
         setSourceCategories([]);
         setSelectedIds([]);

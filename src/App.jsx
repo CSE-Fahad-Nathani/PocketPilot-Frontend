@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import CycleSetup from "./pages/CycleSetup";
 import CategorySetup from "./pages/CategorySetup";
@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Analysis from "./pages/Analysis";
 import TransactionHistory from "./pages/TransactionHistory";
 import Login from "./pages/Login";
+import Logos from "./pages/Logos";
 
 import AppLayout from "./components/AppLayout";
 import AppLoader from "./components/AppLoader";
@@ -24,6 +25,7 @@ import useCategoryTransferStore from "./store/categoryTransferStore";
 import { wakeServer } from "./utils/wakeServer";
 
 const App = () => {
+  const location = useLocation();
   const session = useAuthStore((state) => state.session);
   const setCycleId = useAuthStore((state) => state.setCycleId);
   const { activeCycle, getActiveCycle } = useCycleStore();
@@ -45,7 +47,6 @@ const App = () => {
     const init = async () => {
       setLoading(true);
 
-      // Continue waking / wait for Render if login didn't finish the ping.
       await wakeServer();
 
       try {
@@ -79,7 +80,9 @@ const App = () => {
 
   let content;
 
-  if (!session?.authenticated) {
+  if (location.pathname === "/logos") {
+    content = <Logos />;
+  } else if (!session?.authenticated) {
     content = <Login />;
   } else if (loading) {
     content = (
