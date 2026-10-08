@@ -49,17 +49,6 @@ const CHART_PALETTE = [
 const formatMoney = (value) =>
   `₹${(Number(value) || 0).toLocaleString("en-IN")}`;
 
-const formatCompact = (value) => {
-  const amount = Number(value) || 0;
-  if (Math.abs(amount) >= 100000) {
-    return `₹${(amount / 100000).toFixed(1)}L`;
-  }
-  if (Math.abs(amount) >= 1000) {
-    return `₹${(amount / 1000).toFixed(amount >= 10000 ? 0 : 1)}k`;
-  }
-  return formatMoney(amount);
-};
-
 const ChartTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const item = payload[0];
@@ -135,7 +124,7 @@ const MiniDonut = ({ title, data, centerValue }) => {
               </span>
             </div>
             <span className="shrink-0 text-[9px] font-medium text-white">
-              {formatCompact(item.value)}
+              {formatMoney(item.value)}
             </span>
           </div>
         ))}
@@ -185,12 +174,12 @@ const CompactBudgetRow = ({ category, spent, onExpand }) => {
       </div>
       <div className="mt-0.5 flex justify-between text-[9px] text-[#9d4edd]">
         <span>
-          {formatCompact(spentAmount)}/{formatCompact(budget)}
+          {formatMoney(spentAmount)}/{formatMoney(budget)}
         </span>
         <span style={{ color: status.text }}>
           {isOver
-            ? `${formatCompact(Math.abs(remaining))} over`
-            : `${formatCompact(remaining)} left`}
+            ? `${formatMoney(Math.abs(remaining))} over`
+            : `${formatMoney(remaining)} left`}
         </span>
       </div>
     </button>
@@ -568,7 +557,7 @@ const Dashboard = () => {
               />
             </div>
             <p className="mt-1 text-[9px] text-[#9d4edd]">
-              {formatCompact(totalExpense)} of {formatCompact(totalIncome)}{" "}
+              {formatMoney(totalExpense)} of {formatMoney(totalIncome)}{" "}
               income
             </p>
           </div>
@@ -657,7 +646,7 @@ const Dashboard = () => {
                 <p className="text-[8px] text-[#c77dff]">{stat.label}</p>
               </div>
               <p className={`truncate text-[11px] font-semibold ${stat.tone}`}>
-                {formatCompact(stat.value)}
+                {formatMoney(stat.value)}
               </p>
             </div>
           ))}
@@ -669,12 +658,12 @@ const Dashboard = () => {
         <MiniDonut
           title="Cash flow"
           data={cashflowPie}
-          centerValue={formatCompact(totalIncome)}
+          centerValue={formatMoney(totalIncome)}
         />
         <MiniDonut
           title="Still available"
           data={remainingPie}
-          centerValue={formatCompact(stillAvailableTotal)}
+          centerValue={formatMoney(stillAvailableTotal)}
         />
       </div>
 
@@ -725,34 +714,65 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Fixed payments as compact chips */}
+      {/* Fixed payments */}
       {fixedPayments.length > 0 ? (
         <div className="mt-2.5">
           <div className="mb-1.5 flex items-center justify-between">
             <p className="text-xs font-semibold text-white">
               Fixed
               <span className="ml-1 font-normal text-[#9d4edd]">
-                {fixedPaidCount}/{fixedPayments.length}
+                {fixedPaidCount}/{fixedPayments.length} paid
               </span>
             </p>
+            <p className="text-[10px] text-[#9d4edd]">
+              {formatMoney(
+                fixedPayments.reduce(
+                  (sum, category) => sum + (Number(category.budget) || 0),
+                  0
+                )
+              )}{" "}
+              total
+            </p>
           </div>
-          <div className="flex flex-wrap gap-1.5">
+
+          <div className="grid grid-cols-2 gap-1.5">
             {fixedPayments.map((category) => {
               const spent = spentByCategory[category.id] || 0;
               const budget = Number(category.budget) || 0;
               const paid = budget > 0 && spent >= budget;
+
               return (
-                <span
+                <div
                   key={category.id}
-                  className={`rounded-full border px-2 py-1 text-[10px] ${
+                  className={`rounded-xl border px-2.5 py-2 ${
                     paid
-                      ? "border-[#22c55e]/30 bg-[#22c55e]/10 text-[#86efac]"
-                      : "border-[#3c096c] bg-[#240046] text-[#e0aaff]"
+                      ? "border-[#22c55e]/30 bg-[#14532d]/25"
+                      : "border-[#e0aaff1f] bg-[#240046]"
                   }`}
                 >
-                  {paid ? "✓ " : ""}
-                  {category.name}
-                </span>
+                  <div className="flex items-start justify-between gap-1">
+                    <p className="min-w-0 truncate text-[11px] font-medium text-white">
+                      {category.name}
+                    </p>
+                    <span
+                      className={`shrink-0 text-[9px] font-semibold ${
+                        paid ? "text-[#4ade80]" : "text-[#fb923c]"
+                      }`}
+                    >
+                      {paid ? "✓" : "•"}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm font-bold text-white">
+                    {formatMoney(budget)}
+                  </p>
+                  <p
+                    className={`mt-0.5 text-[9px] ${
+                      paid ? "text-[#86efac]" : "text-[#fdba74]"
+                    }`}
+                  >
+                    {paid ? "Paid" : "Due"}
+                  </p>
+                </div>
               );
             })}
           </div>
