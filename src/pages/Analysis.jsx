@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation, useSearchParams } from "react-router-dom";
 import {
   Bar,
   BarChart,
@@ -17,11 +18,14 @@ import ScreenLayout from "../components/ScreenLayout";
 import PageHeader from "../components/PageHeader";
 import SavingEditModal from "../components/SavingEditModal";
 import SavingsDistribution from "../components/analysis/SavingsDistribution";
+import BucketActivityPanel from "../components/analysis/BucketActivityPanel";
+import CollapsibleSection from "../components/analysis/CollapsibleSection";
 import FuelMileageChart from "../components/FuelMileageChart";
 import { DeleteAction, EditAction } from "../components/RowActions";
 
 import useAnalysisStore from "../store/analysisStore";
 import useSavingStore from "../store/savingStore";
+import useTransactionStore from "../store/transactionStore";
 import { showToast } from "../store/toastStore";
 import { getBudgetStatus } from "../utils/budgetStatus";
 import { isSimpleExpense } from "../utils/expenseExtraData";
@@ -319,6 +323,9 @@ const ExpenseSplitChart = ({ categories }) => {
 };
 
 const Analysis = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+
   const {
     history,
     analysis,
@@ -332,9 +339,54 @@ const Analysis = () => {
 
   const { savings, loading: loadingSavings, getSavings, deleteSaving } =
     useSavingStore();
+  const { fetchTransactions } = useTransactionStore();
 
-  const [tab, setTab] = useState("cycles");
+  const [tab, setTab] = useState(() => {
+    const fromUrl = searchParams.get("tab");
+    return fromUrl === "savings" ? "savings" : "cycles";
+  });
   const [editingSavingId, setEditingSavingId] = useState(null);
+  const [allSavingsOpen, setAllSavingsOpen] = useState(false);
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("tab");
+    if (fromUrl === "savings" || fromUrl === "cycles") {
+      setTab(fromUrl);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (tab !== "savings") return;
+    if (location.hash !== "#bucket-activity" && location.hash !== "#all-savings") {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      const target = document.querySelector(location.hash);
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
+
+    return () => window.clearTimeout(timer);
+  }, [tab, location.hash]);
+
+  useEffect(() => {
+    if (location.hash === "#all-savings") {
+      setAllSavingsOpen(true);
+    }
+  }, [location.hash]);
+
+  useEffect(() => {
+    if (loadingSavings) return;
+    if (location.hash === "#all-savings") return;
+    setAllSavingsOpen(savings.length > 0 && savings.length <= 3);
+  }, [loadingSavings, savings.length, location.hash]);
+
+  const handleTabChange = (nextTab) => {
+    setTab(nextTab);
+    setSearchParams(nextTab === "cycles" ? {} : { tab: nextTab }, {
+      replace: true,
+    });
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -373,7 +425,7 @@ const Analysis = () => {
   };
 
   const refreshAfterSavingChange = async () => {
-    await getSavings();
+    await Promise.all([getSavings(), fetchTransactions()]);
     if (selectedCycleId) {
       await getAnalysis(selectedCycleId);
     }
@@ -403,7 +455,7 @@ const Analysis = () => {
         subtitle="Past cycles & savings"
       />
 
-      <AnalysisTabs active={tab} onChange={setTab} />
+      <AnalysisTabs active={tab} onChange={handleTabChange} />
 
       {tab === "cycles" && (
         <>
@@ -756,81 +808,92 @@ const Analysis = () => {
         <>
           <SavingsDistribution />
 
-          <section className="mb-8">
-            <SectionTitle
-              title="All savings"
-              count={`${savings.length} total`}
-            />
+          <BucketActivityPanel />
 
+          <CollapsibleSection
+            id="all-savings"
+            title="All savings"
+            count={`${savings.length} deposit records · edit or remove`}
+            open={allSavingsOpen}
+            onOpenChange={setAllSavingsOpen}
+          >
             {loadingSavings ? (
               <EmptyBlock>Loading savings...</EmptyBlock>
             ) : savings.length === 0 ? (
               <EmptyBlock>
-                No savings yet. They appear automatically when you end a cycle.
+                No savings yet. They appear when you end a cycle or add funds.
               </EmptyBlock>
             ) : (
-              <LedgerCard>
-                {savings.map((item) => {
-                  const isWithdrawal =
-                    String(item.type).toUpperCase() === "WITHDRAWAL";
+              <div className="overflow-hidden rounded-xl border border-[#e0aaff1f]">
+                <table className="w-full table-fixed border-collapse text-left">
+                  <thead>
+                    <tr className="border-b border-[#3c096c] bg-[#3c096c]/40 text-[8px] uppercase tracking-wide text-[#9d4edd]">
+                      <th className="w-[14%] px-2 py-1 font-medium"> </th>
+                      <th className="px-2 py-1 font-medium">Record</th>
+                      <th className="w-[26%] px-2 py-1 text-right font-medium">
+                        Amount
+                      </th>
+                      <th className="w-[14%] px-1 py-1 text-right font-medium">
+                        {" "}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#3c096c] bg-[#240046]">
+                    {savings.map((item) => {
+                      const isWithdrawal =
+                        String(item.type).toUpperCase() === "WITHDRAWAL";
 
-                  return (
-                    <div
-                      key={item.id}
-                      className="flex items-start gap-2 px-3 py-2.5"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`rounded border px-1 py-px text-[8px] font-medium uppercase tracking-wide ${
-                              isWithdrawal
-                                ? "border-orange-400/30 bg-orange-400/10 text-orange-200"
-                                : "border-[#4ade80]/30 bg-[#4ade80]/10 text-[#86efac]"
+                      return (
+                        <tr key={item.id} className="align-middle">
+                          <td className="px-2 py-1.5">
+                            <span
+                              className={`inline-block rounded border px-1 py-0.5 text-[8px] font-medium uppercase ${
+                                isWithdrawal
+                                  ? "border-orange-400/30 bg-orange-400/10 text-orange-200"
+                                  : "border-[#4ade80]/30 bg-[#4ade80]/10 text-[#86efac]"
+                              }`}
+                            >
+                              {isWithdrawal ? "Out" : "In"}
+                            </span>
+                          </td>
+                          <td className="min-w-0 px-2 py-1.5">
+                            <p className="truncate text-[11px] font-medium text-white">
+                              {item.title}
+                            </p>
+                            <p className="truncate text-[9px] text-[#9d4edd]">
+                              {formatDate(item.transaction_date)}
+                              {item.bucket_name
+                                ? ` · ${item.bucket_name}`
+                                : ""}
+                              {item.note ? ` · ${item.note}` : ""}
+                            </p>
+                          </td>
+                          <td
+                            className={`px-2 py-1.5 text-right text-[11px] font-semibold ${
+                              isWithdrawal ? "text-orange-300" : "text-[#4ade80]"
                             }`}
                           >
-                            {isWithdrawal ? "Out" : "In"}
-                          </span>
-                          <p className="truncate text-sm font-medium text-white">
-                            {item.title}
-                          </p>
-                        </div>
-
-                        <p className="mt-0.5 text-[10px] text-[#9d4edd]">
-                          {formatDate(item.transaction_date)}
-                          {item.bucket_name ? ` · ${item.bucket_name}` : ""}
-                        </p>
-
-                        {item.note ? (
-                          <p className="mt-0.5 truncate text-[10px] text-[#c77dff]">
-                            {item.note}
-                          </p>
-                        ) : null}
-                      </div>
-
-                      <div className="flex shrink-0 flex-col items-end gap-1">
-                        <p
-                          className={`text-sm font-semibold ${
-                            isWithdrawal ? "text-orange-300" : "text-[#4ade80]"
-                          }`}
-                        >
-                          {isWithdrawal ? "−" : "+"}
-                          {formatAmount(item.amount)}
-                        </p>
-                        <div className="flex items-center gap-0.5">
-                          <EditAction
-                            onClick={() => setEditingSavingId(item.id)}
-                          />
-                          <DeleteAction
-                            onClick={() => handleDeleteSaving(item.id)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </LedgerCard>
+                            {isWithdrawal ? "−" : "+"}
+                            {formatAmount(item.amount)}
+                          </td>
+                          <td className="px-1 py-1.5">
+                            <div className="flex items-center justify-end gap-0.5">
+                              <EditAction
+                                onClick={() => setEditingSavingId(item.id)}
+                              />
+                              <DeleteAction
+                                onClick={() => handleDeleteSaving(item.id)}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
-          </section>
+          </CollapsibleSection>
         </>
       )}
 

@@ -24,8 +24,13 @@ const activePrimaryNav = [
 const activeMoreNav = [
   { to: "/income", label: "Income", Icon: FiCreditCard },
   { to: "/transfers", label: "Moves", Icon: FiRepeat },
-  { to: "/analysis", label: "Stats", Icon: FiBarChart2 },
-  { to: "/transactions", label: "History", Icon: FiClock },
+  { to: "/analysis", label: "Stats", Icon: FiBarChart2, match: "cycles" },
+  {
+    to: "/analysis?tab=savings",
+    label: "Savings",
+    Icon: FiClock,
+    match: "savings",
+  },
 ];
 
 const setupPrimaryNav = [
@@ -33,8 +38,14 @@ const setupPrimaryNav = [
 ];
 
 const setupMoreNav = [
-  { to: "/analysis", label: "Stats", shortLabel: "Stats", Icon: FiBarChart2 },
-  { to: "/transactions", label: "History", shortLabel: "History", Icon: FiClock },
+  { to: "/analysis", label: "Stats", shortLabel: "Stats", Icon: FiBarChart2, match: "cycles" },
+  {
+    to: "/analysis?tab=savings",
+    label: "Savings",
+    shortLabel: "Savings",
+    Icon: FiClock,
+    match: "savings",
+  },
 ];
 
 const BottomNav = () => {
@@ -46,10 +57,20 @@ const BottomNav = () => {
   const primaryNav = activeCycle ? activePrimaryNav : setupPrimaryNav;
   const moreNav = activeCycle ? activeMoreNav : setupMoreNav;
 
-  const moreActive = useMemo(
-    () => moreNav.some((item) => location.pathname === item.to),
-    [location.pathname, moreNav]
-  );
+  const moreActive = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const savingsTab = params.get("tab") === "savings";
+
+    return moreNav.some((item) => {
+      if (item.match === "savings") {
+        return location.pathname === "/analysis" && savingsTab;
+      }
+      if (item.match === "cycles" || item.to === "/analysis") {
+        return location.pathname === "/analysis" && !savingsTab;
+      }
+      return location.pathname === item.to;
+    });
+  }, [location.pathname, location.search, moreNav]);
 
   useEffect(() => {
     setMoreOpen(false);
@@ -81,8 +102,15 @@ const BottomNav = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                {moreNav.map(({ to, label, Icon }) => {
-                  const isActive = location.pathname === to;
+                {moreNav.map(({ to, label, Icon, match }) => {
+                  const params = new URLSearchParams(location.search);
+                  const savingsTab = params.get("tab") === "savings";
+                  const isActive =
+                    match === "savings"
+                      ? location.pathname === "/analysis" && savingsTab
+                      : match === "cycles"
+                        ? location.pathname === "/analysis" && !savingsTab
+                        : location.pathname === to;
 
                   return (
                     <NavLink

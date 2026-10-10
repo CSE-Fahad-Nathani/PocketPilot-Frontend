@@ -10,6 +10,11 @@ export const getSavingById = async (id) => {
   return response.data;
 };
 
+export const addManualFunds = async (payload) => {
+  const response = await api.post("/savings/add-funds", payload);
+  return response.data;
+};
+
 export const updateSaving = async (id, payload) => {
   const response = await api.post("/savings/update", { id, ...payload });
   return response.data;

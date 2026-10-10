@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 
 import useSavingBucketStore from "../../store/savingBucketStore";
 import useSavingAllocationStore from "../../store/savingAllocationStore";
+import useSavingStore from "../../store/savingStore";
 import useTransactionStore from "../../store/transactionStore";
 import BucketCard, { BucketActionLegend } from "./BucketCard";
 import PendingSavingCard from "./PendingSavingCard";
 import CreateBucketModal from "./CreateBucketModal";
+import AddFundsModal from "./AddFundsModal";
 import DistributionModal from "./DistributionModal";
 import WithdrawModal from "./WithdrawModal";
 import TransferModal from "./TransferModal";
@@ -15,9 +17,11 @@ import { formatAmount } from "./bucketMeta";
 const SavingsDistribution = () => {
   const { buckets, loading: loadingBuckets, getBuckets } = useSavingBucketStore();
   const { pending, loading: loadingPending, getPending } = useSavingAllocationStore();
+  const { getSavings } = useSavingStore();
   const { fetchTransactions } = useTransactionStore();
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [addFundsOpen, setAddFundsOpen] = useState(false);
   const [distributeSaving, setDistributeSaving] = useState(null);
   const [withdrawBucket, setWithdrawBucket] = useState(null);
   const [transferBucket, setTransferBucket] = useState(null);
@@ -29,7 +33,12 @@ const SavingsDistribution = () => {
   }, []);
 
   const refreshAll = async () => {
-    await Promise.all([getBuckets(), getPending(), fetchTransactions()]);
+    await Promise.all([
+      getBuckets(),
+      getPending(),
+      getSavings(),
+      fetchTransactions(),
+    ]);
   };
 
   const totalBucketBalance = useMemo(
@@ -94,9 +103,20 @@ const SavingsDistribution = () => {
       </div>
 
       <div className="rounded-2xl border border-[#e0aaff1f] bg-[#240046] p-3">
-        <div className="mb-2.5 flex items-center justify-between">
-          <p className="text-xs font-medium text-[#c77dff]">Pending Savings</p>
-          <span className="text-[10px] text-[#9d4edd]">{pending.length} pending</span>
+        <div className="mb-2.5 flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-[#c77dff]">Pending Savings</p>
+            <p className="mt-0.5 text-[10px] text-[#9d4edd]">
+              {pending.length} pending · distribute to buckets
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAddFundsOpen(true)}
+            className="shrink-0 rounded-full bg-[#5a189a] px-3 py-1.5 text-[11px] font-medium text-white transition hover:bg-[#7b2cbf]"
+          >
+            + Add funds
+          </button>
         </div>
 
         {loadingPending ? (
@@ -107,7 +127,16 @@ const SavingsDistribution = () => {
         ) : pending.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[#4ade80]/30 px-3 py-4 text-center">
             <p className="text-sm text-[#4ade80]">All savings distributed</p>
-            <p className="mt-1 text-[10px] text-[#9d4edd]">Great job!</p>
+            <p className="mt-1 text-[10px] text-[#9d4edd]">
+              Got extra cash? Add funds to Pending anytime.
+            </p>
+            <button
+              type="button"
+              onClick={() => setAddFundsOpen(true)}
+              className="mt-3 rounded-full bg-[#5a189a] px-3 py-1.5 text-[11px] font-medium text-white transition hover:bg-[#7b2cbf]"
+            >
+              + Add funds
+            </button>
           </div>
         ) : (
           <div className="space-y-2">
@@ -119,6 +148,7 @@ const SavingsDistribution = () => {
       </div>
 
       <CreateBucketModal open={createOpen} onClose={() => setCreateOpen(false)} onCreated={refreshAll} />
+      <AddFundsModal open={addFundsOpen} onClose={() => setAddFundsOpen(false)} onCreated={refreshAll} />
       <DistributionModal open={Boolean(distributeSaving)} saving={distributeSaving} onClose={() => setDistributeSaving(null)} onDistributed={refreshAll} />
       <WithdrawModal open={Boolean(withdrawBucket)} bucket={withdrawBucket} onClose={() => setWithdrawBucket(null)} onSuccess={refreshAll} />
       <TransferModal open={Boolean(transferBucket)} bucket={transferBucket} buckets={buckets} onClose={() => setTransferBucket(null)} onSuccess={refreshAll} />
